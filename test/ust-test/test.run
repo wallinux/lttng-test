@@ -1,0 +1,72 @@
+#!/bin/bash
+
+if [ $# = 0 ]; then
+    APP=./tracetest2
+else
+    APP=$1
+fi
+
+: ${NO_OF_SUBBUF:=16}
+: ${SUBBUF_SIZE:=4k}
+: ${KERNEL_TRACE:=NO}
+: ${LOOPS:=10}
+: ${COUNTS:=1000}
+: ${NO_OF_THREADS:=2}
+
+SESSION=test
+CHANNEL=ch1
+
+if [ $KERNEL_TRACE = NO ]; then
+    LTTNG='lttng -n'
+    killall lttng-consumerd > /dev/null 2>&1
+    killall lttng-sessiond > /dev/null 2>&1
+    if [ -z $DEBUG ]; then
+	lttng-sessiond --no-kernel -d
+    else
+	lttng-sessiond -v --no-kernel --verbose-consumer -d
+    fi
+    sleep 1
+else
+    LTTNG='lttng'
+fi
+
+if [ ! -z $DEBUG ]; then
+    export LTTNG_UST_DEBUG=1
+fi
+
+rm -rf $HOME/lttng-traces
+rm snapshot/*.bt
+
+echo #### VERSION 
+$LTTNG --version
+babeltrace | head -1
+which lttng | xargs ldd
+echo #### VERSION
+
+$LTTNG create $SESSION --snapshot
+$LTTNG enable-channel -u --subbuf-size $SUBBUF_SIZE --num-subbuf $NO_OF_SUBBUF --overwrite $CHANNEL
+$LTTNG enable-event -u -c $CHANNEL "*"
+$LTTNG start
+$LTTNG list $SESSION
+
+mkdir -p snapshot/
+
+for i in $(seq 1 $LOOPS); do
+    $APP $COUNTS $NO_OF_THREADS &
+    $APP $COUNTS $NO_OF_THREADS &
+    $APP $COUNTS $NO_OF_THREADS &
+    sleep 3
+#    $LTTNG snapshot record -m 1G
+    $LTTNG snapshot record
+
+    # print no of events and first and last event
+    last=$(ls -1drt $HOME/lttng-traces/$SESSION*/* | tail -1)
+    babeltrace $last > snapshot/$i.bt
+    cat snapshot/$i.bt | wc -l
+    cat snapshot/$i.bt | head -1
+    cat snapshot/$i.bt | tail -1
+done
+
+$LTTNG stop
+$LTTNG destroy $SESSION
+
