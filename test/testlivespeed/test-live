@@ -1,0 +1,72 @@
+#!/bin/bash
+#set -x
+
+[ -z $APP ] && APP=./tracetest
+[ -z $NO_OF_THREADS ] && NO_OF_THREADS=3
+[ -z $LOOPS ] && LOOPS=1000
+[ -z $LIVETIME ] && LIVETIME=1000000
+
+LIVESESSION=livetest
+FILESESSION=filetest
+
+prepare () {
+    killall lttng-consumerd
+    killall lttng-sessiond
+    killall lttng-relayd
+    lttng-sessiond -d --no-kernel
+    sleep 1
+}
+
+print_version () {
+    echo -e "--------------------------------------------"
+    echo LTTNG VERSIONS:
+    lttng -V
+    babeltrace -h | head -1
+    echo -e "--------------------------------------------\n"
+}
+
+start_livetrace () {
+    lttng-relayd -b -L net://localhost:5344 > lttng-relayd.log
+    lttng create $1 -U net://localhost --live $LIVETIME
+    lttng enable-event -a -u
+    lttng start
+  
+    babeltrace -i lttng-live net://localhost/host/$TARGET_NAME/$1 > $1.out &
+
+    $APP $LOOPS $NO_OF_THREADS
+
+    sleep 5
+
+    lttng stop
+    lttng destroy $1
+
+    wc -l $1.out
+}
+
+
+start_filetrace () {
+    lttng-relayd -b -o $TRACEDIR > lttng-relayd.log
+    lttng create $1 -U net://localhost --live $LIVETIME
+    lttng enable-event -a -u
+    lttng start
+  
+    babeltrace -i lttng-live net://localhost/host/$TARGET_NAME/$1 > $1.out &
+
+    $APP $LOOPS $NO_OF_THREADS
+
+    sleep 5
+
+    lttng stop
+    lttng destroy $1
+
+    wc -l $1.out
+}
+
+
+
+############################
+prepare
+print_version
+
+start_livetrace $LIVESESSION
+
