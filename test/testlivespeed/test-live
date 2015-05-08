@@ -8,11 +8,16 @@
 
 LIVESESSION=livetest
 FILESESSION=filetest
+TRACEDIR=$PWD/traces
+
+HOSTNAME=$(hostname)
 
 prepare () {
-    killall lttng-consumerd
-    killall lttng-sessiond
-    killall lttng-relayd
+    rm -f *.out
+    rm -rf $TRACEDIR
+    killall -9 lttng-consumerd
+    killall -9 lttng-sessiond
+    killall -9 lttng-relayd
     lttng-sessiond -d --no-kernel
     sleep 1
 }
@@ -26,40 +31,67 @@ print_version () {
 }
 
 start_livetrace () {
-    lttng-relayd -b -L net://localhost:5344 > lttng-relayd.log
+    lttng-relayd -b -L net://localhost:5344
+    sleep 1
     lttng create $1 -U net://localhost --live $LIVETIME
     lttng enable-event -a -u
-    lttng start
+    lttng start $1
   
-    babeltrace -i lttng-live net://localhost/host/$TARGET_NAME/$1 > $1.out &
+    babeltrace -i lttng-live net://localhost/host/$HOSTNAME/$1 > $1.out &
 
     $APP $LOOPS $NO_OF_THREADS
 
     sleep 5
-
-    lttng stop
+    lttng stop $1
     lttng destroy $1
+    killall -9 babeltrace
+    killall -9 lttng-relayd
 
     wc -l $1.out
 }
 
 
 start_filetrace () {
-    lttng-relayd -b -o $TRACEDIR > lttng-relayd.log
+    lttng-relayd -b -o $TRACEDIR
+    sleep 1
     lttng create $1 -U net://localhost --live $LIVETIME
     lttng enable-event -a -u
-    lttng start
+    lttng start $1 
   
-    babeltrace -i lttng-live net://localhost/host/$TARGET_NAME/$1 > $1.out &
-
     $APP $LOOPS $NO_OF_THREADS
 
     sleep 5
-
-    lttng stop
+    babeltrace $TRACEDIR > $1.out
+    lttng stop $1
     lttng destroy $1
+    killall -9 lttng-relayd
 
     wc -l $1.out
+}
+
+start_trace () {
+    lttng-relayd -b -o $TRACEDIR -L net://localhost:5344
+    sleep 1
+    lttng create $1 -U net://localhost --live $LIVETIME
+    lttng enable-event -a -u
+    lttng start $1
+   
+    babeltrace -i lttng-live net://localhost/host/$HOSTNAME/$1 > $1.out &
+
+    $APP $LOOPS $NO_OF_THREADS
+
+    #sleep 1
+    lttng stop $1
+    babeltrace $TRACEDIR > $2.out
+    #sleep 2
+    lttng destroy $1
+    sleep 2
+    killall -9 babeltrace
+    sleep 1
+    killall -9 lttng-relayd
+
+    wc -l $1.out
+    wc -l $2.out
 }
 
 
@@ -68,5 +100,8 @@ start_filetrace () {
 prepare
 print_version
 
-start_livetrace $LIVESESSION
+start_trace $LIVESESSION $FILESESSION
+
+#start_livetrace $LIVESESSION
+#start_filetrace $FILESESSION
 

@@ -32,10 +32,10 @@ repo.pull:
 	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git pull; popd; )
 
 rcs.create:
-	$(Q)$(call run-git-create,babeltrace,v1.2.4)
 	$(Q)$(call run-git-create,userspace-rcu,v0.7.13)
-	$(Q)$(call run-git-create,lttng-tools,v2.5.4)
 	$(Q)$(call run-git-create,lttng-ust,v2.5.3)
+	$(Q)$(call run-git-create,lttng-tools,v2.5.4)
+	$(Q)$(call run-git-create,babeltrace,v1.2.4)
 
 rcs.delete: latest.checkout
 	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch -D rcs; popd; )
@@ -72,10 +72,7 @@ distclean:
 	$(RM) -r .stamps
 
 ALL:
-	$(Q)$(foreach repo, $(REPOS), make bootstrap.$(repo) ; )
-	$(Q)$(foreach repo, $(REPOS), make configure.$(repo) ;)
-	$(Q)$(foreach repo, $(REPOS), make all.$(repo) ; )
-	$(Q)$(foreach repo, $(REPOS), make install.$(repo) ; )
+	$(Q)$(foreach repo, $(REPOS), make bootstrap.$(repo) configure.$(repo) all.$(repo) install.$(repo); )
 
 ALL.uninstall:
 	$(Q)$(foreach repo, $(REPOS), make $*.$(repo) )
@@ -88,3 +85,5 @@ rcs: rcs.create
 latest: latest.checkout
 	$(MAKE) ALL
 	$(MAKE) TAGS
+
+.NOTPARALLEL: ALL

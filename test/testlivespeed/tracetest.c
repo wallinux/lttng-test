@@ -57,5 +57,7 @@ int main(int argc, char* argv[])
 			exit(-1);
 		}
 	}
+
+	printf("%s finshed\n", argv[0]);
 	return 0;
 }
