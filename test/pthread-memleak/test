@@ -1,0 +1,56 @@
+#!/bin/bash
+set +x
+
+[ -z $TEE ] && TEE=tee
+[ -z $APP ] && APP=./tracetest
+[ -z $NO_OF_THREADS ] && NO_OF_THREADS=3
+[ -z $LOOP ] && LOOP=1000
+[ -z $LIVETIME ] && LIVETIME=1000000
+
+# local target
+SERVER_IP=localhost
+TARGET_IP=localhost
+
+SESSION=livetest
+BT_INDEX=0
+DATE=$(date +%H_%M_%S)
+
+TRACEDIR=$PWD/traces
+
+prepare_target () {
+    ulimit -c unlimited
+    rm -rf $TRACEDIR
+}
+
+target_start () {
+    lttng create $SESSION -U net://$SERVER_IP --live $LIVETIME
+    lttng enable-event -a -u
+    lttng start
+}
+
+target_stop () {
+    lttng stop
+    lttng destroy $SESSION
+}
+
+
+start_trace () {
+    target_start
+    ./tracetest
+    sleep 1
+    target_stop
+    babeltrace $TRACEDIR | wc -l
+}
+
+
+############################
+prepare_target
+
+# start relay daemon
+lttng-relayd -v -o $TRACEDIR &> lttng-relayd.log &
+lttng_relayd_pid=$!
+
+start_trace
+
+kill $lttng_relayd_pid
+
