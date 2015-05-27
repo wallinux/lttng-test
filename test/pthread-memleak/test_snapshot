@@ -1,0 +1,47 @@
+#!/bin/bash
+
+[ -z $NO_OF_THREADS ] && NO_OF_THREADS=8
+[ -z $LOOP ] && LOOP=10
+[ -z $LIVETIME ] && LIVETIME=1000000
+[ -z $BUFSIZE ] && BUFSIZE=4k
+
+SERVER_IP=localhost
+SESSION=snapshottest
+CHANNEL=test
+TRACEDIR=$PWD/traces
+
+prepare_target () {
+    ulimit -c unlimited
+    rm -rf $TRACEDIR
+}
+
+target_start () {
+    lttng create $1 --snapshot -o $TRACEDIR
+    lttng enable-channel -s $1 $CHANNEL -u --subbuf-size $BUFSIZE
+    lttng enable-event -s $1 -c $CHANNEL -a -u
+    lttng start $1
+    lttng list $1
+}
+
+target_stop () {
+    lttng stop $1
+    lttng list $1
+    lttng destroy $1
+}
+
+
+start_trace () {
+    target_start $1
+    ./tracetest $LOOP $NO_OF_THREADS
+    sleep 5
+    lttng snapshot -s $1 record
+    target_stop $1
+    babeltrace $TRACEDIR | wc -l
+}
+
+############################
+#export LTTNG_UST_DEBUG=1 
+#lttng-sessiond --no-kernel -d
+prepare_target
+
+start_trace $SESSION

@@ -1,20 +1,13 @@
 #!/bin/bash
-set +x
 
-[ -z $TEE ] && TEE=tee
-[ -z $APP ] && APP=./tracetest
-[ -z $NO_OF_THREADS ] && NO_OF_THREADS=3
-[ -z $LOOP ] && LOOP=1000
+[ -z $NO_OF_THREADS ] && NO_OF_THREADS=8
+[ -z $LOOP ] && LOOP=10
 [ -z $LIVETIME ] && LIVETIME=1000000
+[ -z $BUFSIZE ] && BUFSIZE=4k
 
-# local target
 SERVER_IP=localhost
-TARGET_IP=localhost
-
 SESSION=livetest
-BT_INDEX=0
-DATE=$(date +%H_%M_%S)
-
+CHANNEL=test
 TRACEDIR=$PWD/traces
 
 prepare_target () {
@@ -24,33 +17,33 @@ prepare_target () {
 
 target_start () {
     lttng create $SESSION -U net://$SERVER_IP --live $LIVETIME
-    lttng enable-event -a -u
+    lttng enable-channel  $CHANNEL -u --subbuf-size $BUFSIZE
+    lttng enable-event -s $SESSION -c $CHANNEL -a -u
     lttng start
+    lttng list $SESSION
 }
 
 target_stop () {
     lttng stop
+    lttng list $SESSION
     lttng destroy $SESSION
 }
 
-
 start_trace () {
     target_start
-    ./tracetest
+    ./tracetest $LOOP $NO_OF_THREADS
     sleep 1
     target_stop
     babeltrace $TRACEDIR | wc -l
 }
 
-
 ############################
+#export LTTNG_UST_DEBUG=1
+lttng-sessiond --no-kernel -d
 prepare_target
 
-# start relay daemon
-lttng-relayd -v -o $TRACEDIR &> lttng-relayd.log &
+lttng-relayd -o $TRACEDIR &
 lttng_relayd_pid=$!
-
 start_trace
-
 kill $lttng_relayd_pid
 

@@ -83,9 +83,9 @@ start_trace () {
     #sleep 1
     lttng stop $1
     babeltrace $TRACEDIR > $2.out
-    #sleep 2
+    sleep 1 #ger coredump!!!
     lttng destroy $1
-    sleep 2
+    sleep 60
     killall -9 babeltrace
     sleep 1
     killall -9 lttng-relayd

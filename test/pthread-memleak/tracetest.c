@@ -6,10 +6,24 @@
 #include "tracetest-tp.h"
 
 
-#define PSCMD "ps -eo rss,vsize,pmem,pcpu,cmd | grep ./tracetest | grep -v grep"
+#define PSCMD "ps -eo rss,vsize,pmem,pcpu,cmd | grep -e ./tracetest | grep -v grep"
 
-#define NUM_THREADS 100
-int maxloop = 10;
+#define MAX_THREADS 100
+unsigned int loops = 10;
+unsigned int events = 100;
+
+
+//#define TRACEF(fmt, args...) tracef(fmt,##args)
+#define TRACEF(fmt, args...) do {} while (0)
+//#define PRINTF(fmt, args...) printf(fmt,##args)
+#define PRINTF(fmt, args...) do {} while (0)
+
+#define DEBUG
+#ifdef DEBUG
+#  define PRINT(fmt, args...) { PRINTF(fmt,args); TRACEF(fmt,args); }
+#else
+#  define PRINT(fmt, args...) do {} while (0)
+#endif
 
 int gettid()  {
   return (int) syscall (SYS_gettid);
@@ -18,58 +32,67 @@ int gettid()  {
 void * thread_function(void * na)
 {
   int i;
-  static int tid;
+  int tid;
 
   tid = gettid();
 
-  printf("Start thread: %i (%i)\n", tid, maxloop);
-  tracef("Start thread: %i (%i)\n", tid, maxloop);
+  PRINT("Start thread: %i (%i)\n", tid, events);
 
-  for (i = 0; i < maxloop; i++) {
+  for (i = 0; i < events; i++) {
     tracepoint(tracetest, first_tp, i, "test");
     usleep(1000);
   }
 
-  printf("End thread: %i (%i)\n", tid, maxloop);
+  PRINT("End thread: %i (%i)\n", tid, events);
 }
 
 int main(int argc, char* argv[])
 {
-  pthread_t threads[NUM_THREADS];
+  pthread_t thread[MAX_THREADS];
   int rc;
   long t;
   int *res;
-  int maxthreads = 8;
+  int threads = 8;
   int i;
 
+  /* arg[1] = no of loops creating/joining threads
+     arg[2] = no of threads created
+     arg[3] = no of events created/per thread
+   */
+
   if (argc >= 2) {
-    maxloop = atoi(argv[1]);
+    loops = atoi(argv[1]);
   }
 
   if (argc >= 3) {
-    maxthreads = atoi(argv[2]);
-    if (maxthreads > NUM_THREADS) maxthreads = NUM_THREADS;
+    threads = atoi(argv[2]);
+    if (threads > MAX_THREADS) threads = MAX_THREADS;
+  }
+
+  if (argc >= 4) {
+    events = atoi(argv[3]);
   }
 
 
-  for (i=0; i<maxloop; i++) {	
+
+  for (i = 0; i < loops; i++) {
+    printf("%i:\n", i);
     system(PSCMD);
 
     /* Create threads */
-    for (t = 0; t < maxthreads; t++) {
-      rc = pthread_create(&threads[t], NULL, thread_function, (void *) t);
+    for (t = 0; t < threads; t++) {
+      rc = pthread_create(&thread[t], NULL, thread_function, (void *) t);
       if (rc) {
 	printf("ERROR; return code from pthread_create() is %d\n", rc);
 	exit(-1);
       }
     }
 
-    usleep(1000000);
-    system(PSCMD);
+    //sleep(1);
 
     /* Join threads */
-    for (t = 0; t < maxthreads; t++) {
-      rc = pthread_join(threads[t], (void*) &res);
+    for (t = 0; t < threads; t++) {
+      rc = pthread_join(thread[t], (void*) &res);
       if (rc) {
 	printf("ERROR; return code from pthread_join() is %d\n", rc);
 	exit(-1);
@@ -77,8 +100,7 @@ int main(int argc, char* argv[])
     }
   }
 
+  PRINT("%s finshed\n", argv[0]);
   system(PSCMD);
-
-  printf("%s finshed\n", argv[0]);
   return 0;
 }
