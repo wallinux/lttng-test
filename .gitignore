@@ -4,5 +4,6 @@ lttng-ust
 userspace-rcu
 .stamps
 
+tracetest
 *.tgz
 *~
