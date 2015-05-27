@@ -12,6 +12,11 @@ vpath % .stamps
 MKSTAMP = $(Q)mkdir -p .stamps ; touch .stamps/$@
 RMSTAMP = $(Q)mkdir -p .stamps ; rm .stamps/$(1)
 
+REPO_userspace-rcu = git://git.urcu.so/userspace-rcu.git
+REPO_lttng-ust     = git://git.lttng.org/lttng-ust.git
+REPO_lttng-tools   = git://git.lttng.org/lttng-tools.git
+REPO_babeltrace    = http://git.linuxfoundation.org/diamon/babeltrace.git
+
 REPOS	= userspace-rcu lttng-ust lttng-tools babeltrace
 
 define run-git-create
@@ -24,6 +29,9 @@ endef
 
 help:
 	$(Q)grep -e ": " -e ":$$"  Makefile | grep -v grep | cut -d ':' -f 1 | tr ' ' '\n' | sort
+
+repo.clone:
+	$(Q)$(foreach repo, $(REPOS), git clone $(REPO_$(repo)); )
 
 repo.fetch:
 	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git fetch --prune; popd; )
@@ -65,11 +73,14 @@ all.% install.% uninstall.% clean.% distclean.% TAGS.% CTAGS.% distclean-tags.%:
 	$(MAKE) -C $* $(target)
 
 all install uninstall clean TAGS CTAGS distclean-tags:
-	$(Q)$(foreach repo, $(REPOS), make $@.$(repo) ; )
+	$(Q)$(foreach repo, $(REPOS), make $@.$(repo); )
 
 distclean:
-	$(Q)$(foreach repo, $(REPOS), make $@.$(repo) ; )
+	$(Q)$(foreach repo, $(REPOS), make $@.$(repo); )
 	$(RM) -r .stamps
+
+DISTCLEAN:
+	$(Q)$(foreach repo, $(REPOS), rm -rf $(repo); )
 
 ALL:
 	$(Q)$(foreach repo, $(REPOS), make bootstrap.$(repo) configure.$(repo) all.$(repo) install.$(repo); )
