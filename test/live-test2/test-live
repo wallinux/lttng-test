@@ -1,11 +1,13 @@
 #!/bin/bash
-set +x
+#set -x
 
 [ -z $TEE ] && TEE=tee
 [ -z $APP ] && APP=./tracetest
 [ -z $NO_OF_THREADS ] && NO_OF_THREADS=3
-[ -z $LOOP ] && LOOP=1000
+[ -z $LOOP ] && LOOP=10
 [ -z $LIVETIME ] && LIVETIME=1000000
+[ -z $BUFSIZE ] && BUFSIZE=128k
+[ -z $CPUMASK ] && CPUMASK=0xffff
 
 # local target
 SERVER_IP=localhost
@@ -13,26 +15,28 @@ TARGET_IP=localhost
 TARGET_CMD=
 if [ $# = 1 ] && [ $1 = "remote" ]; then
     # remote target
-    TARGET_IP=135.15.35.94
-    SERVER_IP=135.15.35.1
+    TARGET_IP=128.224.95.182
+    SERVER_IP=128.224.95.15
     USER=root
     TARGET_CMD="ssh $USER@$TARGET_IP"
-fi 
+fi
 
-SESSION=livetest
-BT_INDEX=0
-DATE=$(date +%H_%M_%S)
+SESSION=test
+CHANNEL=testch
+TRACEDIR=$PWD/traces
 
 prepare_target () {
     if [ $TARGET_IP != localhost ]; then
 	echo Copy $APP to $USER@$TARGET_IP
 	scp $APP $USER@$TARGET_IP:
     fi
+    killall babeltrace
     $TARGET_CMD killall lttng-consumerd
     $TARGET_CMD killall lttng-sessiond
     $TARGET_CMD sleep 1
     $TARGET_CMD ps -ef | grep lttng-*
-    rm *.log
+    rm *.log *.out
+    rm -rf $TRACEDIR
     $TARGET_CMD lttng-sessiond -d --no-kernel
     TARGET_NAME=$(echo $($TARGET_CMD hostname))
 
@@ -41,29 +45,40 @@ prepare_target () {
 
 target_start () {
     echo $1
-    $TARGET_CMD lttng create $SESSION -U net://$SERVER_IP --live $LIVETIME
-    $TARGET_CMD lttng enable-event -a -u
-    $TARGET_CMD lttng start
+    $TARGET_CMD lttng create $1 -U net://$SERVER_IP --live $LIVETIME
+    $TARGET_CMD lttng enable-channel $CHANNEL -u -s $1 --subbuf-size $BUFSIZE
+    $TARGET_CMD lttng enable-event -s $1 -c $CHANNEL -a -u
+    $TARGET_CMD lttng start $1
+    $TARGET_CMD lttng list $1
 }
 
 target_stop () {
-    $TARGET_CMD lttng stop
-    $TARGET_CMD lttng destroy $SESSION
+    $TARGET_CMD lttng list $1
+    $TARGET_CMD lttng stop $1
+    $TARGET_CMD lttng destroy $1
 }
-
 
 start_trace () {
     target_start $1
-  
+
     echo STARTING BABELTRACE
-    babeltrace -i lttng-live net://localhost/host/$TARGET_NAME/$SESSION > babeltrace.log &
+    babeltrace -i lttng-live net://localhost/host/$TARGET_NAME/$SESSION > babeltrace.out &
+    echo CREATING TRACES
+    $TARGET_CMD PRINT_PS=1 taskset $CPUMASK $APP $LOOP $NO_OF_THREADS
 
-    $TARGET_CMD ./tracetest $1 $NO_OF_THREADS
+    echo SLEEP
+    for i in $(seq 1 20); do
+	sleep 1
+	du -s babeltrace.out
+	du -s $TRACEDIR
+    done
 
-    sleep 5
-    ps -ef | grep -e lttng -e babeltrace
-    target_stop
-    wc -l babeltrace.log
+    echo STOPING
+    target_stop $1
+    babeltrace -w babeltrace-file.out $TRACEDIR
+    cat babeltrace.out | wc -l
+    cat babeltrace-file.out | wc -l
+#    diff -u babeltrace.out babeltrace-file.out
 }
 
 
@@ -80,14 +95,13 @@ prepare_target
 print_version
 
 # start relay daemon
-lttng-relayd -L net://localhost:5344 &> lttng-relayd.log &
-lttng_relayd_pid=$!
+lttng-relayd -o $TRACEDIR -L net://localhost:5344 &> lttng-relayd.log &
 
-echo -e "\nps ------------------------------------------"; ps -l
+start_trace $SESSION
 
-start_trace $LOOP
+for i in $(seq 1 10); do
+    sleep 1
+    pgrep -l babeltrace
+done
 
-kill $lttng_relayd_pid
-
-sleep 1
-echo -e "\nps ------------------------------------------"; ps -l
+killall lttng-relayd

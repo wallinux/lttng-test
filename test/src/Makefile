@@ -28,5 +28,3 @@ clean:
 splint:
 # Failing in linux header files
 	$(Q)splint tracetest.c +posixlib  -I/usr/local/include
-
-
