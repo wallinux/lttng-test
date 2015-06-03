@@ -16,8 +16,9 @@ REPO_userspace-rcu = git://git.urcu.so/userspace-rcu.git
 REPO_lttng-ust     = git://git.lttng.org/lttng-ust.git
 REPO_lttng-tools   = git://git.lttng.org/lttng-tools.git
 REPO_babeltrace    = http://git.linuxfoundation.org/diamon/babeltrace.git
+REPO_lttngtop	   = git://git.lttng.org/lttngtop.git
 
-REPOS	= userspace-rcu lttng-ust lttng-tools babeltrace
+REPOS	= userspace-rcu lttng-ust lttng-tools babeltrace lttngtop
 
 define run-git-create
         cd $(1); \

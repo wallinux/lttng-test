@@ -2,8 +2,12 @@ babeltrace
 lttng-tools
 lttng-ust
 userspace-rcu
+lttngtop
 .stamps
 
 tracetest
+tracetest-tp.[cho]
+*.log
+*.out
 *.tgz
 *~
