@@ -12,5 +12,4 @@ all:
 clean:
 	$(Q)rm -f tracetest
 	$(Q)rm -f *~ \#*
-
-
+	$(Q)rm -f *.log

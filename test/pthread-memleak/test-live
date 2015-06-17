@@ -3,7 +3,7 @@
 [ -z $NO_OF_THREADS ] && NO_OF_THREADS=8
 [ -z $LOOP ] && LOOP=10
 [ -z $LIVETIME ] && LIVETIME=1000000
-[ -z $BUFSIZE ] && BUFSIZE=4k
+[ -z $BUFSIZE ] && BUFSIZE=128k
 
 SERVER_IP=localhost
 SESSION=livetest
@@ -31,7 +31,7 @@ target_stop () {
 
 start_trace () {
     target_start
-    ./tracetest $LOOP $NO_OF_THREADS
+    PRINT_PS=1 ./tracetest $LOOP $NO_OF_THREADS 
     sleep 1
     target_stop
     babeltrace $TRACEDIR | wc -l
@@ -46,4 +46,3 @@ lttng-relayd -o $TRACEDIR &
 lttng_relayd_pid=$!
 start_trace
 kill $lttng_relayd_pid
-

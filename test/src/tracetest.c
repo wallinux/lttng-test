@@ -16,8 +16,8 @@ int print_ps = 0;
 
 //#define TRACEF(fmt, args...) tracef(fmt,##args)
 #define TRACEF(fmt, args...) do {} while (0)
-#define PRINTF(fmt, args...) printf(fmt,##args)
-//#define PRINTF(fmt, args...) do {} while (0)
+//#define PRINTF(fmt, args...) printf(fmt,##args)
+#define PRINTF(fmt, args...) do {} while (0)
 
 #define DEBUG
 #ifdef DEBUG
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 	}
 
 	for (i = 0; i < loops; i++) {
-		printf("%i:\n", i);
+		PRINTF("%i:\n", i);
 		PRINT_PS;
 
 		/* Create threads */
