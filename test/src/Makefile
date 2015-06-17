@@ -8,6 +8,7 @@ endif
 CFLAGS = -Wall
 
 all: tracetest
+	$(Q)echo using $(CC)
 
 tracetest-tp.h: tracetest-tp.tp Makefile
 	$(Q)lttng-gen-tp $< -o $@
