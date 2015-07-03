@@ -12,7 +12,7 @@ vpath % .stamps
 MKSTAMP = $(Q)mkdir -p .stamps ; touch .stamps/$@
 RMSTAMP = $(Q)mkdir -p .stamps ; rm .stamps/$(1)
 
-REPO_userspace-rcu = git://git.urcu.so/userspace-rcu.git
+REPO_userspace-rcu = git://git.liburcu.org/userspace-rcu.git
 REPO_lttng-ust     = git://git.lttng.org/lttng-ust.git
 REPO_lttng-tools   = git://git.lttng.org/lttng-tools.git
 REPO_babeltrace    = http://git.linuxfoundation.org/diamon/babeltrace.git
@@ -84,7 +84,7 @@ DISTCLEAN:
 	$(Q)$(foreach repo, $(REPOS), rm -rf $(repo); )
 
 ALL:
-	$(Q)$(foreach repo, $(REPOS), make bootstrap.$(repo) configure.$(repo) all.$(repo) install.$(repo); )
+	$(Q)$(foreach repo, $(REPOS), make uninstall.$(repo) bootstrap.$(repo) configure.$(repo) all.$(repo) install.$(repo); )
 
 ALL.uninstall:
 	$(Q)$(foreach repo, $(REPOS), make $*.$(repo) )
