@@ -4,7 +4,7 @@
 #include <syscall.h>
 
 #include <lttng/tracef.h>
-#include "tracetest-tp.h"
+#include "tracedef.h"
 
 #define PSCMD "ps -eo rss,vsize,pmem,pcpu,cmd | grep -e ./tracetest | grep -v grep"
 #define PRINT_PS if (print_ps) system(PSCMD);
@@ -40,7 +40,9 @@ void * thread_function(void * na)
 	PRINT("Start thread: %i (%i)\n", tid, events);
 
 	for (i = 0; i < events; i++) {
-		tracepoint(tracetest, first_tp, i, "test");
+		tracepoint(wr, wr1, i, "test1");
+		tracepoint(wr, wr2, i, "test2");
+		tracepoint(wr, wr3, i, "test3");
 		usleep(1000);
 	}
 

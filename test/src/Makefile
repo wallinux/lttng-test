@@ -10,20 +10,18 @@ CFLAGS = -Wall
 all: tracetest
 	$(Q)echo using $(CC)
 
-tracetest-tp.h: tracetest-tp.tp Makefile
+
+tracedef.h tracedef.c: tracedef.tp Makefile
 	$(Q)lttng-gen-tp $< -o $@
 
-tracetest-tp.c: tracetest-tp.tp tracetest-tp.h Makefile
-	$(Q)lttng-gen-tp $< -o $@
-
-tracetest-tp.o: tracetest-tp.c Makefile
+tracedef.o: tracedef.c tracedef.h Makefile
 	$(Q)$(CC) -c -I. -o $@ $< -llttng-ust
 
-tracetest: tracetest.c tracetest-tp.o 
-	$(Q)$(CC) $(CFLAGS) tracetest-tp.o -o $@ $< -llttng-ust -ldl -pthread
+tracetest: tracetest.c tracedef.o
+	$(Q)$(CC) $(CFLAGS) tracedef.o -o $@ $< -llttng-ust -ldl -pthread
 
 clean:
-	$(Q)rm -f tracetest tracetest-tp.[och]
+	$(Q)rm -f tracetest tracetest-tp.[och] tracedef.[och]
 	$(Q)rm -f *~ \#*
 
 splint:
