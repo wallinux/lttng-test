@@ -1,6 +1,7 @@
 Run the test-live script and check if the RSS number increases!
 ---------------------------------------------------------------
 
+$ export LD_LIBRARY_PATH=/usr/local/lib
 $ LOOP=10000 NO_OF_THREADS=50 ./test-live
 .....
  912  29856  0.0  0.0 ./tracetest 10000 50

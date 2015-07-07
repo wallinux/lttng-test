@@ -38,11 +38,13 @@ start_trace () {
 }
 
 ############################
+
 #export LTTNG_UST_DEBUG=1
 lttng-sessiond --no-kernel -d
 prepare_target
 
 lttng-relayd -o $TRACEDIR &
-lttng_relayd_pid=$!
+
 start_trace
-kill $lttng_relayd_pid
+
+killall lttng-relayd
