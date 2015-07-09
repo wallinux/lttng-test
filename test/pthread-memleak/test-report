@@ -1,0 +1,10 @@
+#!/bin/bash
+
+TESTS="normal snapshot live live-wo-relayd"
+
+for i in $TESTS; do
+    fname=results/test-$i
+    echo running $fname
+    grep tracetest $fname.out | sed -e 's/  / /g' -e 's/^ //' | cut -d' ' -f 1 > $fname.csv
+    gnuplot -p -e "set term pdf; set output '$fname.pdf'; plot '$fname.csv'" 
+done
