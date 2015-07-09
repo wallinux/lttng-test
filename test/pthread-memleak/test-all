@@ -1,0 +1,12 @@
+#!/bin/bash
+
+export LOOP=$1
+export NO_OF_THREADS=$2
+
+TESTS="normal snapshot live live-wo-relayd"
+
+for i in $TESTS; do
+    echo running test-$i
+    ./test-$i > test-$i.out
+    sleep 2
+done

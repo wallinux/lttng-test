@@ -3,9 +3,7 @@
 source test.inc
 
 start_trace () {
-    lttng-relayd -o $TRACEDIR &
-    sleep 1
-    lttng create $1 -U net://$SERVER_IP --live $LIVETIME
+    lttng create $1 -o $TRACEDIR
     target_start $1
     PRINT_PS=1 ./tracetest $LOOP $NO_OF_THREADS
     sleep 1
