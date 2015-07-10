@@ -7,10 +7,10 @@ start_trace () {
     target_start $1
     PRINT_PS=1 ./tracetest $LOOP $NO_OF_THREADS &
     sleep 1
-    while [ ! -z $(pgrep tracetest) ]; do {
+    while pgrep tracetest >/dev/null; do
 	sleep 5
 	lttng snapshot -s $1 record
-    } done
+    done
 
     target_stop $1
     babeltrace $TRACEDIR | wc -l

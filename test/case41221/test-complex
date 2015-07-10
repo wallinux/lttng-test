@@ -1,0 +1,76 @@
+#!/bin/bash
+
+[ -z $NO_OF_THREADS ] && NO_OF_THREADS=8
+[ -z $LOOP ] && LOOP=10
+[ -z $LIVETIME ] && LIVETIME=1000000
+[ -z $BUFSIZE ] && BUFSIZE=128k
+
+#export LTTNG_UST_DEBUG=1
+
+S1=rcs
+S1CH=rcsch
+S1BUFSIZE=64k
+S1BUFNO=8
+S1DIR=$PWD/${S1}_traces
+S1LOGLEVEL=TRACE_ERR
+S2LOGLEVEL=TRACE_WARNING
+
+S2=tn
+S2CH=tnch
+S2BUFSIZE=1024k
+S2BUFNO=4
+S2DIR=$PWD/${S2}_traces
+
+target_prepare () {
+    killall lttng-sessiond 2> /dev/null
+    rm -rf $S1DIR $S2DIR
+    sleep 1
+    lttng-sessiond --no-kernel -d
+}
+
+target_clean () {
+    echo $0
+}
+
+target_start () {
+    lttng enable-channel -s $1 $2 -u --subbuf-size $3 --num-subbuf $4
+    lttng enable-event -s $1 -c $2 -a -u --loglevel-only $5
+    lttng start $1
+    lttng list $1
+}
+
+target_stop () {
+    lttng stop $1
+    lttng list $1
+    lttng destroy $1
+}
+
+start_trace () {
+    lttng create $S1 --snapshot -o $S1DIR
+    lttng create $S2 --snapshot -o $S2DIR
+    target_start $S1 $S1CH $S1BUFSIZE $S1BUFNO $S1LOGLEVEL
+    target_start $S2 $S2CH $S2BUFSIZE $S2BUFNO $S2LOGLEVEL
+
+    for i in $(seq 1 10); do
+	./tracetest $LOOP $NO_OF_THREADS &
+    done
+    sleep 1
+    while pgrep tracetest >/dev/null; do
+	sleep 5
+	lttng snapshot -s $S1 record
+	lttng snapshot -s $S2 record
+    done
+
+    lttng snapshot -s $S1 record
+    lttng snapshot -s $S2 record
+
+    target_stop $S1
+    target_stop $S2
+    babeltrace $S1DIR | wc -l
+    babeltrace $S2DIR | wc -l
+}
+
+############################
+target_prepare
+start_trace
+target_clean

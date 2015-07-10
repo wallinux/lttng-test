@@ -12,7 +12,7 @@ all:
 	$(Q)ln -sfn ../src/tracetest .
 
 run:
-	LOOP=10000 NO_OF_THREADS=30 ./test-live
+	LOOP=10000 NO_OF_THREADS=30 ./test-snapshot
 
 clean:
 	$(Q)rm -f tracetest
