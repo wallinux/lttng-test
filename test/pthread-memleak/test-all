@@ -3,7 +3,8 @@
 export LOOP=$1
 export NO_OF_THREADS=$2
 
-TESTS="normal snapshot live live-wo-relayd"
+#TESTS="normal snapshot live live-wo-relayd"
+TESTS="snapshot"
 
 for i in $TESTS; do
     echo running test-$i

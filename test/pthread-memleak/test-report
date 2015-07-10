@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TESTS="normal snapshot live live-wo-relayd"
+TESTS="snapshot"
 
 for i in $TESTS; do
     fname=results/test-$i
