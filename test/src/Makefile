@@ -7,7 +7,7 @@ endif
 
 CFLAGS = -Wall
 
-all: tracetest
+all:  libtracetest.so tracetest
 	$(Q)echo using $(CC)
 
 
@@ -18,10 +18,14 @@ tracedef.o: tracedef.c tracedef.h Makefile
 	$(Q)$(CC) -c -I. -o $@ $< -llttng-ust
 
 tracetest: tracetest.c tracedef.o
-	$(Q)$(CC) $(CFLAGS) tracedef.o -o $@ $< -llttng-ust -ldl -pthread
+	$(Q)$(CC) $(CFLAGS) tracedef.o -o $@ $< -L. -ldl -ltracetest -llttng-ust -pthread
+
+libtracetest.so: libtracetest.c
+	$(Q)$(CC) -c -Wall -Werror -fpic $<
+	$(Q)$(CC) -shared -o $@ libtracetest.o
 
 clean:
-	$(Q)rm -f tracetest tracetest-tp.[och] tracedef.[och]
+	$(Q)rm -f tracetest libtracetest.so tracetest-tp.[och] tracedef.[och]
 	$(Q)rm -f *~ \#*
 
 splint:

@@ -5,6 +5,7 @@
 
 #include <lttng/tracef.h>
 #include "tracedef.h"
+#include "libtracetest.h"
 
 #define PSCMD "ps -eo rss,vsize,pmem,pcpu,cmd | grep -e ./tracetest | grep -v grep"
 #define PRINT_PS if (print_ps) system(PSCMD);
@@ -26,18 +27,11 @@ int print_ps = 0;
 #  define PRINT(fmt, args...) do {} while (0)
 #endif
 
-int gettid()  {
-	return (int) syscall (SYS_gettid);
-}
-
-void * thread_function(void * na)
+static void * thread_function(void * na)
 {
 	int i;
-	int tid;
 
-	tid = gettid();
-
-	PRINT("Start thread: %i (%i)\n", tid, events);
+	PRINT("Start thread: %i (%i)\n", gettid, events);
 
 	for (i = 0; i < events; i++) {
 		tracepoint(wr, wr1, i, "test1");
@@ -45,8 +39,11 @@ void * thread_function(void * na)
 		tracepoint(wr, wr3, i, "test3");
 		usleep(1000);
 	}
+	tracetest_lib1(events);
+	tracetest_lib2(events);
+	tracetest_lib3(events);
 
-	PRINT("End thread: %i (%i)\n", tid, events);
+	PRINT("End thread: %i (%i)\n", gettid, events);
 
 	return NULL;
 }

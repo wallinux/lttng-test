@@ -20,11 +20,11 @@ REPO_lttngtop	   = git://git.lttng.org/lttngtop.git
 REPOS	= userspace-rcu lttng-ust lttng-tools babeltrace
 #REPOS	+= lttngtop
 
-define run-git-create
+define run-create
 	cd $(1); \
-	git rev-parse --verify rcs; \
+	git rev-parse --verify $(3); \
 	if [ $$? != 0 ]; then \
-		git checkout -b rcs $(2); \
+		git checkout -b $(3) $(2); \
 	fi
 endef
 
@@ -35,38 +35,59 @@ repo.clone:
 	$(Q)$(foreach repo, $(REPOS), git clone $(REPO_$(repo)); )
 
 repo.fetch:
-	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git fetch --prune; popd; )
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git fetch --prune; popd >/dev/null; )
 
 repo.pull:
-	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git pull; popd; )
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git pull; popd >/dev/null; )
+
+repo.bls:
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch | grep \*; \
+		git log -1 --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative; \
+		popd >/dev/null; )
 
 rcs.create:
-	$(Q)$(call run-git-create,userspace-rcu,v0.7.14)
-	$(Q)$(call run-git-create,lttng-ust,v2.5.5)
-	$(Q)$(call run-git-create,lttng-tools,v2.5.4)
-	$(Q)$(call run-git-create,babeltrace,v1.2.4)
+	$(Q)$(call run-create,userspace-rcu,v0.8.4,rcs)
+	$(Q)$(call run-create,lttng-ust,v2.5.5,rcs)
+	$(Q)$(call run-create,lttng-tools,v2.5.4,rcs)
+	$(Q)$(call run-create,babeltrace,v1.2.4,rcs)
 	$(MKSTAMP)
 
 rcs.delete: latest.checkout
-	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch -D rcs; popd; )
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch -D rcs; popd >/dev/null; )
 	$(RM) .stamps/rcs.create
 
 rcs.checkout: rcs.create
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git checkout rcs; popd >/dev/null; )
+	$(RM) .stamps/*.checkout
+	$(MKSTAMP)
+
+next.create:
+	$(Q)$(call run-create,userspace-rcu,v0.8.8,next)
+	$(Q)$(call run-create,lttng-ust,v2.7.0,next)
+	$(Q)$(call run-create,lttng-tools,v2.7.0,next)
+	$(Q)$(call run-create,babeltrace,v1.2.4,next)
+	$(MKSTAMP)
+
+next.delete: latest.checkout
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch -D next; popd >/dev/null; )
+	$(RM) .stamps/next.create
+
+next.checkout: rcs.create
 	$(Q)if [ -e .stamps/latest.checkout ]; then \
 		make distclean; \
 	fi
-	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git checkout rcs; popd; )
-	$(MKSTAMP)
-	$(RM) .stamps/latest.checkout
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git checkout next; popd >/dev/null; )
+	$(RM) .stamps/*.checkout
+	$(MKSTAMP)	
 
 latest.checkout:
 	$(Q)if [ -e .stamps/rcs.checkout ]; then \
 		make distclean; \
 	fi
-	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git checkout master; popd; )
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git checkout master; popd >/dev/null; )
 	$(MAKE) repo.pull
+	$(RM) .stamps/*.checkout
 	$(MKSTAMP)
-	$(RM) .stamps/rcs.checkout
 
 bootstrap.%:
 	$(eval target=$(subst .$*,,$@))
@@ -139,4 +160,7 @@ rcs: rcs.checkout
 	$(MAKE) ALL
 
 latest: latest.checkout
+	$(MAKE) ALL
+
+next: next.checkout
 	$(MAKE) ALL
