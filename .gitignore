@@ -3,6 +3,7 @@ lttng-tools
 lttng-ust
 userspace-rcu
 lttngtop
+lttng-modules
 .stamps
 
 tracetest
@@ -10,4 +11,8 @@ tracetest-tp.[cho]
 *.log
 *.out
 *.tgz
+*.o
+*.so
+*.ko
 *~
+

@@ -16,9 +16,11 @@ REPO_lttng-ust     = git://git.lttng.org/lttng-ust.git
 REPO_lttng-tools   = git://git.lttng.org/lttng-tools.git
 REPO_babeltrace    = http://git.linuxfoundation.org/diamon/babeltrace.git
 REPO_lttngtop	   = git://git.lttng.org/lttngtop.git
+REPO_lttng-modules = git://git.lttng.org/lttng-modules.git/
 
-REPOS	= userspace-rcu lttng-ust lttng-tools babeltrace
-#REPOS	+= lttngtop
+#EXTRA_REPOS	?= lttngtop lttng-modules
+EXTRA_REPOS	?=
+REPOS		= userspace-rcu lttng-ust lttng-tools babeltrace $(EXTRA_REPOS)
 
 define run-create
 	cd $(1); \
