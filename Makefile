@@ -65,7 +65,7 @@ rcs.checkout: rcs.create
 
 next.create:
 	$(Q)$(call run-create,userspace-rcu,v0.9.1,next)
-	$(Q)$(call run-create,lttng-ust,v2.7.0,next)
+	$(Q)$(call run-create,lttng-ust,v2.7.1,next)
 	$(Q)$(call run-create,lttng-tools,v2.7.0,next)
 	$(Q)$(call run-create,babeltrace,v1.3.1,next)
 	$(MKSTAMP)
