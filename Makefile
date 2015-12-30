@@ -64,10 +64,10 @@ rcs.checkout: rcs.create
 	$(MKSTAMP)
 
 next.create:
-	$(Q)$(call run-create,userspace-rcu,v0.8.8,next)
+	$(Q)$(call run-create,userspace-rcu,v0.9.1,next)
 	$(Q)$(call run-create,lttng-ust,v2.7.0,next)
 	$(Q)$(call run-create,lttng-tools,v2.7.0,next)
-	$(Q)$(call run-create,babeltrace,v1.2.4,next)
+	$(Q)$(call run-create,babeltrace,v1.3.1,next)
 	$(MKSTAMP)
 
 next.delete: latest.checkout
