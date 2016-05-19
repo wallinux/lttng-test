@@ -47,13 +47,6 @@ repo.bls:
 		git log -1 --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative; \
 		popd >/dev/null; )
 
-rcs.create:
-	$(Q)$(call run-create,userspace-rcu,v0.8.4,rcs)
-	$(Q)$(call run-create,lttng-ust,v2.5.5,rcs)
-	$(Q)$(call run-create,lttng-tools,v2.5.4,rcs)
-	$(Q)$(call run-create,babeltrace,v1.2.4,rcs)
-	$(MKSTAMP)
-
 rcs.delete: latest.checkout
 	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch -D rcs; popd >/dev/null; )
 	$(RM) .stamps/rcs.create
@@ -63,24 +56,12 @@ rcs.checkout: rcs.create
 	$(RM) .stamps/*.checkout
 	$(MKSTAMP)
 
-next.create:
-	$(Q)$(call run-create,userspace-rcu,v0.9.1,next)
-	$(Q)$(call run-create,lttng-ust,v2.7.1,next)
-	$(Q)$(call run-create,lttng-tools,v2.7.0,next)
-	$(Q)$(call run-create,babeltrace,v1.3.1,next)
+rcs.create:
+	$(Q)$(call run-create,userspace-rcu,v0.9.1,rcs)
+	$(Q)$(call run-create,lttng-ust,v2.7.1,rcs)
+	$(Q)$(call run-create,lttng-tools,v2.7.0,rcs)
+	$(Q)$(call run-create,babeltrace,v1.3.1,rcs)
 	$(MKSTAMP)
-
-next.delete: latest.checkout
-	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch -D next; popd >/dev/null; )
-	$(RM) .stamps/next.create
-
-next.checkout: rcs.create
-	$(Q)if [ -e .stamps/latest.checkout ]; then \
-		make distclean; \
-	fi
-	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git checkout next; popd >/dev/null; )
-	$(RM) .stamps/*.checkout
-	$(MKSTAMP)	
 
 latest.checkout:
 	$(Q)if [ -e .stamps/rcs.checkout ]; then \
@@ -162,7 +143,4 @@ rcs: rcs.checkout
 	$(MAKE) ALL
 
 latest: latest.checkout
-	$(MAKE) ALL
-
-next: next.checkout
 	$(MAKE) ALL
