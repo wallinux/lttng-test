@@ -48,6 +48,7 @@ repo.latest_tag:
 repo.bls:
 	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch | grep \*; \
 		git log -1 --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative; \
+		git describe --abbrev=0 --tags; \
 		popd >/dev/null; )
 
 
