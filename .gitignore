@@ -5,7 +5,10 @@ userspace-rcu
 lttngtop
 lttng-modules
 .stamps
+kernel_builddir
+linux-2.6
 
+update.sh
 tracetest
 tracetest-tp.[cho]
 *.log
