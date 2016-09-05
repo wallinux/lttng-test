@@ -42,10 +42,14 @@ repo.fetch:
 repo.pull:
 	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git pull; popd >/dev/null; )
 
+repo.latest_tag:
+	$(Q)$(foreach repo, $(REPOS), pushd $(repo) >/dev/null; basename $$PWD; git describe --abbrev=0 --tags; popd >/dev/null; )
+
 repo.bls:
 	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch | grep \*; \
 		git log -1 --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative; \
 		popd >/dev/null; )
+
 
 rcs.delete: latest.checkout
 	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch -D rcs; popd >/dev/null; )
