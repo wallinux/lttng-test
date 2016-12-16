@@ -1,0 +1,14 @@
+#!/bin/sh
+
+LINUX=$PWD/linux
+BUILDDIR=$PWD/kernel_builddir
+
+cd lttng-modules
+./built-in.sh $LINUX
+
+cd $LINUX
+git diff
+make defconfig O=$BUILDDIR
+
+echo add LTTNG CONFIG use
+echo make -C $LINUX nconfig O=$BUILDDIR
