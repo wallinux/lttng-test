@@ -7,6 +7,11 @@ endif
 
 RM	= $(Q)rm -f
 MAKE	= $(Q)make
+ECHO 	= $(Q)echo
+RED 	= $(Q)tput setaf 1
+GREEN 	= $(Q)tput setaf 2
+NORMAL 	= $(Q)tput sgr0
+TRACE 	= $(Q)tput setaf 1; echo ------ $@; tput sgr0
 
 vpath % .stamps
 MKSTAMP = $(Q)mkdir -p .stamps ; touch .stamps/$@
@@ -31,7 +36,10 @@ define run-create
 endef
 
 help:
+	$(TRACE)
+	$(GREEN)
 	$(Q)grep -e ": " -e ":$$"  Makefile | grep -v grep | cut -d ':' -f 1 | tr ' ' '\n' | sort
+	$(NORMAL)
 
 repo.clone:
 	$(Q)$(foreach repo, $(REPOS), git clone $(REPO_$(repo)); )
@@ -63,9 +71,9 @@ rcs.checkout: rcs.create
 
 rcs.create:
 	$(Q)$(call run-create,userspace-rcu,v0.9.3,rcs)
-	$(Q)$(call run-create,lttng-ust,v2.7.6,rcs)
-	$(Q)$(call run-create,lttng-tools,v2.7.5,rcs)
-	$(Q)$(call run-create,babeltrace,v1.5.0,rcs)
+	$(Q)$(call run-create,lttng-ust,v2.7.5,rcs)
+	$(Q)$(call run-create,lttng-tools,v2.7.6,rcs)
+	$(Q)$(call run-create,babeltrace,v1.5.1,rcs)
 	$(MKSTAMP)
 
 latest.checkout:
