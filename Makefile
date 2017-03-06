@@ -27,6 +27,12 @@ REPO_lttng-modules = git://git.lttng.org/lttng-modules.git/
 EXTRA_REPOS	?=
 REPOS		= userspace-rcu lttng-ust lttng-tools babeltrace $(EXTRA_REPOS)
 
+CONF_PREFIX			?= --prefix=/usr
+CONF_OPTION_userspace-rcu 	?= $(CONF_PREFIX)
+CONF_OPTION_lttng-ust 		?= $(CONF_PREFIX) --disable-man-pages
+CONF_OPTION_lttng-tools 	?= $(CONF_PREFIX) --disable-man-pages
+CONF_OPTION_babeltrace 		?= $(CONF_PREFIX)
+
 define run-create
 	cd $(1); \
 	git rev-parse --verify $(3) >/dev/null; \
@@ -136,7 +142,7 @@ configure.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
 	$(MAKE) bootstrap.$*
-	$(Q)cd $*; ./$(target)
+	$(Q)cd $*; ./$(target) $(CONF_OPTION_$*)
 	$(MKSTAMP)
 
 all.%:
@@ -182,20 +188,20 @@ clean.% TAGS.% CTAGS.% distclean-tags.%:
 		echo $(target) not configured; \
 	fi
 
-ALL.userspace-rcu: install.userspace-rcu
+ALL.userspace-rcu: all.userspace-rcu
 	$(TRACE)
 
 ALL.lttng-ust: ALL.userspace-rcu
 	$(TRACE)
-	$(MAKE) install.lttng-ust
+	$(MAKE) all.lttng-ust
 
 ALL.lttng-tools: ALL.lttng-ust
 	$(TRACE)
-	$(MAKE) install.lttng-tools
+	$(MAKE) all.lttng-tools
 
 ALL.babeltrace: ALL.userspace-rcu
 	$(TRACE)
-	$(MAKE) install.babeltrace
+	$(MAKE) all.babeltrace
 
 ALL all bootstrap configure install distclean uninstall clean TAGS CTAGS distclean-tags:
 	$(TRACE)
