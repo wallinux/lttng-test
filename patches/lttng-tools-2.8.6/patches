@@ -1,0 +1,14 @@
+Revert-Build-look-for-python-3.0-when-building-pytho.patch
+runtest.patch
+lttng-tools-filter-random-filename-of-tests-output.patch
+libxml-m4-use-pkgconfig.patch
+Allow-multiple-attempts-to-connect-to-relayd-if-rela.patch
+root_regression-tests-updated-to-succeed-on-RCS-targ.patch
+Fix-consumerd-memory-leak-when-using-snapshot-sessio.patch
+Using-cat-instead-of-man-to-show-help-text.patch
+Added-tests-for-ARM-CNTPCT-clock-plugin.patch
+Added-support-for-BFN-clock.patch
+Added-BFN-tests.patch
+Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
+tmp-fix-do-not-crash-a-live-session-when-relayd-is-k.patch
+0001-AW.patch

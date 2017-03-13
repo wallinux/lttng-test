@@ -1,5 +1,8 @@
 SHELL=/bin/bash
 
+UID = $(shell id -u)
+TOP = $(shell pwd)
+
 # Define V=1 to echo everything
 ifneq ($(V),1)
 Q=@
@@ -12,6 +15,11 @@ RED 	= $(Q)tput setaf 1
 GREEN 	= $(Q)tput setaf 2
 NORMAL 	= $(Q)tput sgr0
 TRACE 	= $(Q)tput setaf 1; echo ------ $@; tput sgr0
+ifneq ($(UID),0)
+SUDOMAKE= $(Q)sudo make
+else
+SUDOMAKE= $(MAKE)
+endif
 
 vpath % .stamps
 MKSTAMP = $(Q)mkdir -p .stamps ; touch .stamps/$@
@@ -41,6 +49,16 @@ define run-create
 	else \
 		git checkout $(3); \
 	fi
+endef
+
+define rcs-patch
+	echo -e "\nPatching $(1)"; \
+	cd $(1); \
+	git reset --hard $(2) >/dev/null; \
+	for file in $$(cat $(TOP)/patches/$(1)/patches); do \
+		git am $(TOP)/patches/$(1)/$$file; \
+	done; \
+	git tag -f v_rcs >/dev/null;
 endef
 
 help:
@@ -89,11 +107,6 @@ repo.bls:
 		popd >/dev/null; \
 	)
 
-
-rcs.delete: master.checkout
-	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS), pushd $(repo); git branch -D rcs; popd >/dev/null; )
-
 rcs.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,v0.9.3,rcs )
@@ -101,6 +114,21 @@ rcs.checkout:
 	$(Q)$(call run-create,lttng-tools,v2.8.6,rcs )
 	$(Q)$(call run-create,babeltrace,v1.5.1,rcs )
 
+rcs.patch: rcs.checkout
+	$(TRACE)
+	$(Q)$(call rcs-patch,userspace-rcu,v0.9.3 )
+	$(Q)$(call rcs-patch,lttng-ust,v2.8.2 )
+	$(Q)$(call rcs-patch,lttng-tools,v2.8.6 )
+	$(Q)$(call rcs-patch,babeltrace,v1.5.1 )
+
+rcs.clean:
+	$(TRACE)
+	$(Q)$(foreach repo, $(REPOS), \
+		cd $(repo); \
+		git checkout master; \
+		git branch -D rcs; \
+		cd ..; \
+	)
 stable-2.7.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,origin/stable-0.9,stable-0.9 )
@@ -155,17 +183,12 @@ install.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
 	$(MAKE) all.$*
-	$(MAKE) -C $* $(target)
+	$(SUDOMAKE) -C $* $(target)
 
 uninstall.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(Q)if [ -e .stamps/install.$* ]; then \
-		rm .stamps/install.$*; \
-		make -C $* $(target); \
-	else \
-		echo $(target) not installed; \
-	fi
+	$(SUDOMAKE) -C $* $(target)
 
 distclean.%:
 	$(TRACE)
@@ -173,7 +196,6 @@ distclean.%:
 	$(Q)if [ -e .stamps/configure.$* ]; then \
 		make uninstall.$*; \
 		make -C $* $(target); \
-		rm .stamps/bootstrap.$*; \
 		rm .stamps/configure.$*; \
 	else \
 		echo $(target) not configured; \
@@ -188,33 +210,12 @@ clean.% TAGS.% CTAGS.% distclean-tags.%:
 		echo $(target) not configured; \
 	fi
 
-ALL.userspace-rcu: all.userspace-rcu
+DISTCLEAN.%:
 	$(TRACE)
+	$(RM) -r $*
 
-ALL.lttng-ust: ALL.userspace-rcu
-	$(TRACE)
-	$(MAKE) all.lttng-ust
-
-ALL.lttng-tools: ALL.lttng-ust
-	$(TRACE)
-	$(MAKE) all.lttng-tools
-
-ALL.babeltrace: ALL.userspace-rcu
-	$(TRACE)
-	$(MAKE) all.babeltrace
-
-ALL all bootstrap configure install distclean uninstall clean TAGS CTAGS distclean-tags:
+all bootstrap configure install distclean uninstall clean TAGS CTAGS DISTCLEAN distclean-tags:
 	$(TRACE)
 	$(Q)$(foreach repo, $(REPOS), make $@.$(repo); )
 
-DISTCLEAN:
-	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS), rm -rf $(repo); )
-
-rcs: rcs.checkout
-	$(TRACE)
-	$(MAKE) ALL
-
-master: master.checkout
-	$(TRACE)
-	$(MAKE) ALL
+ALL: install
