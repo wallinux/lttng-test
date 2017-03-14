@@ -1,0 +1,51 @@
+#!/bin/sh
+#set -x
+
+HOSTIP=$(/sbin/ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | grep "128\.")
+SIGTERM=15
+SIGKILL=9
+
+[ "$TARGETIP" = "" ] && TARGETIP=localhost
+[ "$TARGETCMD" = "" ] &&  TARGETCMD="ssh ${USER}@${TARGETIP}"
+[ "$SIGNAL" = "" ] &&  SIGNAL=$SIGKILL
+TARGETNAME=$($TARGETCMD hostname)
+SESSION=livetest
+
+echo TARGETCMD: $TARGETCMD
+echo SIGNAL:    $SIGNAL
+############################
+
+#echo ----------------------
+#echo "HOST"
+#echo "  host ip:             " $HOSTIP
+#echo "  babeltrace version:  " $(babeltrace -h | head -1)
+#echo "  lttng-relayd version:" $(lttng-relayd --version)
+#echo "TARGET"
+#echo "  target hostname:     " $TARGETNAME
+#echo "  target ip:           " $TARGETIP
+#echo "  lttng version:       " $($TARGETCMD lttng -V)
+#echo ----------------------
+
+# cleanup if $SESSION already exist
+rm -f $SESSION.out
+$TARGETCMD lttng destroy $SESSION 2> /dev/null
+sleep 1
+
+lttng-relayd -L net://localhost:5344 &
+lttng_relayd_pid=$!
+
+$TARGETCMD lttng create $SESSION -U net://$HOSTIP --live 1000000
+$TARGETCMD lttng enable-channel $SESSION-channel -u -s $SESSION
+$TARGETCMD lttng enable-event -a -u -c $SESSION-channel -s $SESSION
+$TARGETCMD lttng list $SESSION
+
+babeltrace -i lttng-live net://localhost/host/$TARGETNAME/$SESSION > $SESSION.out &
+
+$TARGETCMD lttng start $SESSION
+#ps -efP | grep lttng
+time ./gen-ust-events 100000000 &
+sleep 1
+kill -s $SIGNAL $lttng_relayd_pid
+$TARGETCMD lttng stop $SESSION
+sleep 3
+$TARGETCMD lttng destroy $SESSION
