@@ -3,8 +3,7 @@
 
 #VERBOSE=-v
 
-HOSTIP=$(/sbin/ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | grep "128\.")
-
+[ "$HOSTIP" = "" ] && HOSTIP=$(/sbin/ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p' | grep "128\.")
 [ "$TARGETIP" = "" ] && TARGETIP=128.224.95.181
 TARGETCMD="ssh root@${TARGETIP}"
 TARGETNAME=$($TARGETCMD hostname)
@@ -30,14 +29,19 @@ echo "TARGET"
 echo "  target hostname:     " $TARGETNAME
 echo "  target ip:           " $TARGETIP
 echo "  lttng version:       " $($TARGETCMD lttng -V)
+echo "  arch:                " $TARGETARCH
 echo ----------------------
 
 # cleanup if $SESSION already exist
 rm -f $SESSION.out
 $TARGETCMD lttng destroy $SESSION 2> /dev/null
 sleep 1
+rm -rf $HOME/lttng-traces
 
-#export LTTNG_NETWORK_SOCKET_TIMEOUT=1000
+if [ "$TIMEOUT" != "" ]; then
+    export LTTNG_NETWORK_SOCKET_TIMEOUT=$TIMEOUT
+fi
+
 lttng-relayd $VERBOSE -L net://localhost:5344 &
 lttng_relayd_pid=$!
 
@@ -48,10 +52,10 @@ $TARGETCMD lttng list $SESSION
 
 babeltrace -i lttng-live net://localhost/host/$TARGETNAME/$SESSION > $SESSION.out &
 
-$TARGETCMD lttng start
+$TARGETCMD lttng start $SESSION
 $TARGETCMD $TESTAPP $NO_OF_EVENTS
 sleep 3
-$TARGETCMD lttng stop
+$TARGETCMD lttng stop $SESSION
 sleep 3
 $TARGETCMD lttng destroy $SESSION
 
@@ -64,5 +68,3 @@ fi
 
 sleep 1
 kill $lttng_relayd_pid
-
-
