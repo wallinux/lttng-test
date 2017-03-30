@@ -11,4 +11,3 @@ Added-support-for-BFN-clock.patch
 Added-BFN-tests.patch
 Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
 tmp-fix-do-not-crash-a-live-session-when-relayd-is-k.patch
-0001-AW.patch
