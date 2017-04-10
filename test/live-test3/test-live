@@ -39,6 +39,7 @@ sleep 1
 rm -rf $HOME/lttng-traces
 
 if [ "$TIMEOUT" != "" ]; then
+    echo LTTNG_NETWORK_SOCKET_TIMEOUT=$TIMEOUT
     export LTTNG_NETWORK_SOCKET_TIMEOUT=$TIMEOUT
 fi
 
