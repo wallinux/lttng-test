@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SCRIPTDIR=$(dirname $(realpath $0))
+
 if [ $# -eq 0 ]; then
     TARGETS="amarillo1 victoria2"
 else
@@ -14,7 +16,7 @@ mkdir -p $OUTDIR
 for target in $TARGETS; do
   echo "Live test started on $target"
   export TARGETIP=$target
-  $(./test-live -v run &> $OUTDIR/$target.out) & pid=$!
+  $($SCRIPTDIR/test-live -v run &> $OUTDIR/$target.out) & pid=$!
   PID_LIST+="$pid "
 done
 
