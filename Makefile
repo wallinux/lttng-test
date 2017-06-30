@@ -107,19 +107,24 @@ repo.bls:
 		popd >/dev/null; \
 	)
 
+LIBURCU_VER=v0.9.3
+LTTNGUST_VER=v2.8.2
+LTTNGTOOLS_VER=v2.8.6
+BABELTRACE_VER=v1.5.1
+
 rcs.checkout:
 	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,v0.9.3,rcs )
-	$(Q)$(call run-create,lttng-ust,v2.8.2,rcs )
-	$(Q)$(call run-create,lttng-tools,v2.8.6,rcs )
-	$(Q)$(call run-create,babeltrace,v1.5.1,rcs )
+	$(Q)$(call run-create,userspace-rcu,$(LIBURCU_VER),rcs )
+	$(Q)$(call run-create,lttng-ust,$(LTTNGUST_VER),rcs )
+	$(Q)$(call run-create,lttng-tools,$(LTTNGTOOLS_VER),rcs )
+	$(Q)$(call run-create,babeltrace,$(BABELTRACE_VER),rcs )
 
 rcs.patch: rcs.checkout
 	$(TRACE)
-	$(Q)$(call rcs-patch,userspace-rcu,v0.9.3 )
-	$(Q)$(call rcs-patch,lttng-ust,v2.8.2 )
-	$(Q)$(call rcs-patch,lttng-tools,v2.8.6 )
-	$(Q)$(call rcs-patch,babeltrace,v1.5.1 )
+	$(Q)$(call rcs-patch,userspace-rcu,$(LIBURCU_VER),rcs )
+	$(Q)$(call rcs-patch,lttng-ust,$(LTTNGUST_VER),rcs )
+	$(Q)$(call rcs-patch,lttng-tools,$(LTTNGTOOLS_VER),rcs )
+	$(Q)$(call rcs-patch,babeltrace,$(BABELTRACE_VER),rcs )
 
 rcs.clean:
 	$(TRACE)

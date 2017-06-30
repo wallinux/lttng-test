@@ -1,0 +1,36 @@
+From 240bbd9739107ca8773e678268359050bab002a8 Mon Sep 17 00:00:00 2001
+From: Par Olsson <par.olsson@windriver.com>
+Date: Wed, 11 Nov 2015 10:17:22 +0100
+Subject: [PATCH] lttng-ust: Add check for loaded libraries in tracepoint
+
+Adding a check in tracepoint, to avoid crashes when
+tracepoint is called after the destructor closed
+loaded libraries and reset variables.
+
+Signed-off-by: Par Olsson <par.olsson@windriver.com>
+Signed-off-by: Mikael Beckius <mikael.beckius@windriver.com>
+---
+ include/lttng/tracepoint.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/lttng/tracepoint.h b/include/lttng/tracepoint.h
+index e88db89..1eadc58 100644
+--- a/include/lttng/tracepoint.h
++++ b/include/lttng/tracepoint.h
+@@ -52,9 +52,13 @@ extern "C" {
+ #define do_tracepoint(provider, name, ...) \
+ 	__tracepoint_cb_##provider##___##name(__VA_ARGS__)
+ 
++extern int __tracepoint_registered;
++
+ #define tracepoint(provider, name, ...)					    \
+ 	do {								    \
+ 		LTTNG_STAP_PROBEV(provider, name, ## __VA_ARGS__);	    \
++		if (caa_unlikely(!__tracepoint_registered))		    \
++			break;						    \
+ 		if (tracepoint_enabled(provider, name)) 		    \
+ 			do_tracepoint(provider, name, __VA_ARGS__);	    \
+ 	} while (0)
+-- 
+2.0.1
+

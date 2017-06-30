@@ -1,0 +1,33 @@
+From 3ffc2badcfbedbcbe3b9b1b6c01de2be62ba2c30 Mon Sep 17 00:00:00 2001
+From: Abhishek Paliwal <paliwal.abhishek@windriver.com>
+Date: Mon, 3 Oct 2016 13:21:56 +0530
+Subject: [PATCH] Adding an extra check in tracepoint, to avoid crashes when
+ tracepoint is called after the destructor in existing commit
+ 240bbd9739107ca8773e678268359050bab002a8.
+
+Signed-off-by: Abhishek Paliwal <paliwal.abhishek@windriver.com>
+---
+ include/lttng/tracepoint.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/lttng/tracepoint.h b/include/lttng/tracepoint.h
+index 709a446..e2ac5cb 100644
+--- a/include/lttng/tracepoint.h
++++ b/include/lttng/tracepoint.h
+@@ -53,11 +53,12 @@ extern "C" {
+ 	__tracepoint_cb_##provider##___##name(__VA_ARGS__)
+ 
+ extern int __tracepoint_registered;
++extern struct lttng_ust_tracepoint_dlopen tracepoint_dlopen;
+ 
+ #define tracepoint(provider, name, ...)					    \
+ 	do {								    \
+ 		LTTNG_STAP_PROBEV(provider, name, ## __VA_ARGS__);	    \
+-		if (caa_unlikely(!__tracepoint_registered))		    \
++		if (caa_unlikely(!__tracepoint_registered) || caa_unlikely(! tracepoint_dlopen.liblttngust_handle))		    \
+ 			break;						    \
+ 		if (tracepoint_enabled(provider, name)) 		    \
+ 			do_tracepoint(provider, name, __VA_ARGS__);	    \
+-- 
+1.9.1
+
