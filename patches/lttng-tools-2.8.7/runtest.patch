@@ -1,0 +1,72 @@
+From 7967040fbabf41c92b9f303df65c65ae93ac858f Mon Sep 17 00:00:00 2001
+Message-Id: <7967040fbabf41c92b9f303df65c65ae93ac858f.1446628104.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Wed, 4 Nov 2015 10:08:22 +0100
+Subject: [PATCH 1/1] runtest
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ Makefile.am     |  6 ++++++
+ tests/run.sh    |  5 ++++-
+ tests/runorg.sh | 22 ++++++++++++++++++++++
+ 3 files changed, 32 insertions(+), 1 deletion(-)
+ create mode 100755 tests/runorg.sh
+
+diff --git a/Makefile.am b/Makefile.am
+index 9c426f4..97c7db1 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -13,3 +13,9 @@ dist_doc_DATA = LICENSE \
+ dist_noinst_DATA = CodingStyle
+ 
+ EXTRA_DIST = extras/lttng-bash_completion gpl-2.0.txt lgpl-2.1.txt
++
++install-ptest:
++	cp -r $(srcdir)/tests $(DESTDIR)
++	for m in $$(find $(DESTDIR)/tests -name Makefile); do \
++          sed -i -e 's|^Makefile:|_Makefile:|' $$m; \
++        done
+diff --git a/tests/run.sh b/tests/run.sh
+index c6c50fd..6455359 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -19,4 +19,7 @@
+ 
+ [ -z "$1" ] && echo "Error: No testlist. Please specify a testlist to run." && exit 1
+ 
+-prove --merge --exec '' - < $1
++prove --merge -v --exec '' - < $1 | sed \
++  -e 's|^ok \(.*\)|PASS: \1|' \
++  -e 's|^not ok \(.*\)|FAIL: \1|' \
++  | egrep -h 'PASS|FAIL'
+diff --git a/tests/runorg.sh b/tests/runorg.sh
+new file mode 100755
+index 0000000..c6c50fd
+--- /dev/null
++++ b/tests/runorg.sh
+@@ -0,0 +1,22 @@
++#!/bin/bash
++#
++# Copyright (C) 2013 - Christian Babeux <christian.babeux@efficios.com>
++#
++# This program is free software; you can redistribute it and/or
++# modify it under the terms of the GNU General Public License
++# as published by the Free Software Foundation; only version 2
++# of the License.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
++#
++
++[ -z "$1" ] && echo "Error: No testlist. Please specify a testlist to run." && exit 1
++
++prove --merge --exec '' - < $1
+-- 
+2.1.4
+

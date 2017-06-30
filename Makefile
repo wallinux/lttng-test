@@ -107,9 +107,9 @@ repo.bls:
 		popd >/dev/null; \
 	)
 
-LIBURCU_VER=v0.9.3
-LTTNGUST_VER=v2.8.2
-LTTNGTOOLS_VER=v2.8.6
+LIBURCU_VER=v0.9.4
+LTTNGUST_VER=v2.8.3
+LTTNGTOOLS_VER=v2.8.7
 BABELTRACE_VER=v1.5.1
 
 rcs.checkout:

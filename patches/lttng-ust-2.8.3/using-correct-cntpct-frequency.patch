@@ -1,0 +1,65 @@
+From df231b4bb3e3ad0b35457f8c9196bd13d97e205e Mon Sep 17 00:00:00 2001
+Message-Id: <df231b4bb3e3ad0b35457f8c9196bd13d97e205e.1490196069.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Wed, 22 Mar 2017 15:37:38 +0100
+Subject: [PATCH 1/1] using correct cntpct frequency
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ .../lttng-ust-arm-cntpct-clock.c                   | 31 +++++++++++-----------
+ 1 file changed, 15 insertions(+), 16 deletions(-)
+
+diff --git a/liblttng-ust-arm-cntpct-clock/lttng-ust-arm-cntpct-clock.c b/liblttng-ust-arm-cntpct-clock/lttng-ust-arm-cntpct-clock.c
+index f96df8ae..4687d885 100644
+--- a/liblttng-ust-arm-cntpct-clock/lttng-ust-arm-cntpct-clock.c
++++ b/liblttng-ust-arm-cntpct-clock/lttng-ust-arm-cntpct-clock.c
+@@ -31,31 +31,30 @@
+ 
+ static uint64_t arm_cntpct_read64(void)
+ {
+-	uint64_t tmp;
++	uint64_t cval;
+ #ifdef __arm__
+-	unsigned long cvall, cvalh;
+-
+-	asm volatile("mrrc p15, 0, %0, %1, c14" :
+-		     "=r" (cvall), "=r" (cvalh));
+-
+-	/* tmp = cval * 1000 / 256
+-	 */
+-	tmp =  ((uint64_t)cvalh * 1000) << (32-8);
+-	tmp += ((uint64_t)cvall * 1000) >> 8;
+-
+-	return tmp;
++	asm volatile("mrrc p15, 0, %Q0, %R0, c14" : "=r" (cval));
+ #elif defined(__aarch64__)
+-	asm volatile("mrs %0, cntpct_el0" : "=r" (tmp));
+-	return tmp;
++	asm volatile("mrs %0, cntpct_el0" : "=r" (cval));
+ #else
+ 	#warning ARM cntpct is only used for ARM or AARCH64 arch
+-	return -1;
++	cval = -1;
+ #endif
++	return cval;
+ }
+ 
+ static uint64_t arm_cntpct_freq(void)
+ {
+-	return 1000000000;
++	unsigned int val;
++#ifdef __arm__
++	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (val));
++#elif defined(__aarch64__)
++	asm volatile("mrs %0,   cntfrq_el0" : "=r" (val));
++#else
++	#warning ARM cntpct is only used for ARM or AARCH64 arch
++	val = -1;
++#endif
++        return val;
+ }
+ 
+ static int arm_cntpct_uuid(char *uuid)
+-- 
+2.11.0
+
