@@ -158,6 +158,14 @@ stable-2.9.checkout:
 	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
 	$(MAKE) repo.pull repo.bls
 
+stable-2.10.checkout:
+	$(TRACE)
+	$(Q)$(call run-create,userspace-rcu,origin/stable-0.10,stable-0.10 )
+	$(Q)$(call run-create,lttng-ust,origin/stable-2.10,stable-2.10 )
+	$(Q)$(call run-create,lttng-tools,origin/stable-2.10,stable-2.10 )
+	$(Q)$(call run-create,babeltrace,origin/stable-2.0,stable-2.0 )
+	$(MAKE) repo.pull repo.bls
+
 master.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,origin/master,master )
