@@ -1,3 +1,4 @@
+Remove-weak-attribute-on-hidden-symbols.patch
 Added-ARM-cntpct-clock-plugin.patch
 Added-AARCH64-support-to-the-clock-plugin.patch
 adding-debug-information-when-using-custom-clock.patch
@@ -5,8 +6,4 @@ using-correct-cntpct-frequency.patch
 0001-ring-buffer-handle-shmp-errors.patch
 0002-Add-ctx_len-field-to-ring-buffer-context.patch
 0003-Performance-cache-the-backend-pages-pointer-in-conte.patch
-0001-UST-create-channel-failed.patch
-0001-lttng-ust-doc-examples-disable.patch
-0001-lttng-ust-Add-check-for-loaded-libraries-in-tracepoi.patch
 0001-Change-lttng-threads-name-to-specified-name-for-debu.patch
-0001-Adding-an-extra-check-in-tracepoint-to-avoid-crashes.patch

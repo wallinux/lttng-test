@@ -56,7 +56,7 @@ define rcs-patch
 	cd $(1); \
 	git reset --hard $(2) >/dev/null; \
 	for file in $$(cat $(TOP)/patches/$(1)/patches); do \
-		git am $(TOP)/patches/$(1)/$$file; \
+		git am -3 $(TOP)/patches/$(1)/$$file; \
 	done; \
 	git tag -f v_rcs >/dev/null;
 endef
@@ -108,9 +108,9 @@ repo.bls:
 	)
 
 LIBURCU_VER=v0.9.4
-LTTNGUST_VER=v2.8.3
-LTTNGTOOLS_VER=v2.8.7
-BABELTRACE_VER=v1.5.1
+LTTNGUST_VER=v2.8.4
+LTTNGTOOLS_VER=v2.8.8
+BABELTRACE_VER=v1.5.3
 
 rcs.checkout:
 	$(TRACE)
