@@ -10,6 +10,7 @@ endif
 
 RM	= $(Q)rm -f
 MAKE	= $(Q)make
+MKDIR	= $(Q)mkdir -p
 ECHO 	= $(Q)echo
 RED 	= $(Q)tput setaf 1
 GREEN 	= $(Q)tput setaf 2
@@ -21,8 +22,9 @@ else
 SUDOMAKE= $(MAKE)
 endif
 
-vpath % .stamps
-MKSTAMP = $(Q)mkdir -p .stamps ; touch .stamps/$@
+STAMPDIR = $(TOP)/.stamps
+vpath % $(STAMPDIR)
+MKSTAMP = $(Q)mkdir -p $(STAMPDIR) ; touch $(STAMPDIR)/$@
 
 REPO_userspace-rcu = git://git.liburcu.org/userspace-rcu.git
 REPO_lttng-ust     = git://git.lttng.org/lttng-ust.git
@@ -41,6 +43,11 @@ CONF_OPTION_lttng-ust 		?= $(CONF_PREFIX) --disable-man-pages
 CONF_OPTION_lttng-tools 	?= $(CONF_PREFIX) --disable-man-pages
 CONF_OPTION_babeltrace 		?= $(CONF_PREFIX)
 
+define create-builddir
+	$(foreach repo,$(REPOS), mkdir -p out/$(1)/$(repo); \
+				  ln -sfn $(1)/$(repo) out/$(repo); )
+endef
+
 define run-create
 	cd $(1); \
 	git rev-parse --verify $(3) >/dev/null; \
@@ -48,7 +55,8 @@ define run-create
 		git checkout -b $(3) $(2); \
 	else \
 		git checkout $(3); \
-	fi
+	fi; \
+	./bootstrap
 endef
 
 define rcs-patch
@@ -118,6 +126,7 @@ rcs.checkout:
 	$(Q)$(call run-create,lttng-ust,$(LTTNGUST_VER),rcs )
 	$(Q)$(call run-create,lttng-tools,$(LTTNGTOOLS_VER),rcs )
 	$(Q)$(call run-create,babeltrace,$(BABELTRACE_VER),rcs )
+	$(Q)$(call create-builddir,rcs)
 
 rcs.patch: rcs.checkout
 	$(TRACE)
@@ -134,6 +143,7 @@ rcs.clean:
 		git branch -D rcs; \
 		cd ..; \
 	)
+
 stable-2.7.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,origin/stable-0.9,stable-0.9 )
@@ -141,6 +151,7 @@ stable-2.7.checkout:
 	$(Q)$(call run-create,lttng-tools,origin/stable-2.7,stable-2.7 )
 	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
 	$(MAKE) repo.pull repo.bls
+	$(Q)$(call create-builddir,stable-2.7)
 
 stable-2.8.checkout:
 	$(TRACE)
@@ -149,6 +160,7 @@ stable-2.8.checkout:
 	$(Q)$(call run-create,lttng-tools,origin/stable-2.8,stable-2.8 )
 	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
 	$(MAKE) repo.pull repo.bls
+	$(Q)$(call create-builddir,stable-2.8)
 
 stable-2.9.checkout:
 	$(TRACE)
@@ -157,6 +169,7 @@ stable-2.9.checkout:
 	$(Q)$(call run-create,lttng-tools,origin/stable-2.9,stable-2.9 )
 	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
 	$(MAKE) repo.pull repo.bls
+	$(Q)$(call create-builddir,stable-2.9)
 
 stable-2.10.checkout:
 	$(TRACE)
@@ -165,6 +178,7 @@ stable-2.10.checkout:
 	$(Q)$(call run-create,lttng-tools,origin/stable-2.10,stable-2.10 )
 	$(Q)$(call run-create,babeltrace,origin/stable-2.0,stable-2.0 )
 	$(MAKE) repo.pull repo.bls
+	$(Q)$(call create-builddir,stable-2.10)
 
 master.checkout:
 	$(TRACE)
@@ -173,43 +187,37 @@ master.checkout:
 	$(Q)$(call run-create,lttng-tools,origin/master,master )
 	$(Q)$(call run-create,babeltrace,origin/master,master )
 	$(MAKE) repo.pull repo.bls
-
-bootstrap.%:
-	$(TRACE)
-	$(eval target=$(subst .$*,,$@))
-	$(Q)cd $*; ./$(target)
+	$(Q)$(call create-builddir,master)
 
 configure.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(MAKE) bootstrap.$*
-	$(Q)cd $*; ./$(target) $(CONF_OPTION_$*)
-	$(MKSTAMP)
+	$(Q)cd out/$*; $(TOP)/$*/$(target) $(CONF_OPTION_$*)
 
 all.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
 	$(MAKE) configure.$*
-	$(MAKE) -C $* $(target)
+	$(MAKE) -C out/$* $(target)
 
 install.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
 	$(MAKE) all.$*
-	$(SUDOMAKE) -C $* $(target)
+	$(SUDOMAKE) -C out/$* $(target)
 
 uninstall.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(SUDOMAKE) -C $* $(target)
+	$(SUDOMAKE) -C out/$* $(target)
 
 distclean.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(Q)if [ -e .stamps/configure.$* ]; then \
+	$(Q)if [ -e out/$*/Makefile ]; then \
 		make uninstall.$*; \
-		make -C $* $(target); \
-		rm .stamps/configure.$*; \
+		make -C out/$* $(target); \
+		rm -rf out/$*/*; \
 	else \
 		echo $(target) not configured; \
 	fi
@@ -217,8 +225,8 @@ distclean.%:
 clean.% TAGS.% CTAGS.% distclean-tags.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(Q)if [ -e .stamps/configure.$* ]; then \
-		make -C $* $(target); \
+	$(Q)if [ -e out/$*/Makefile ]; then \
+		make -C out/$* $(target); \
 	else \
 		echo $(target) not configured; \
 	fi
@@ -226,8 +234,9 @@ clean.% TAGS.% CTAGS.% distclean-tags.%:
 DISTCLEAN.%:
 	$(TRACE)
 	$(RM) -r $*
+	$(RM) -r out
 
-all bootstrap configure install distclean uninstall clean TAGS CTAGS DISTCLEAN distclean-tags:
+all configure install distclean uninstall clean TAGS CTAGS DISTCLEAN distclean-tags:
 	$(TRACE)
 	$(Q)$(foreach repo, $(REPOS), make $@.$(repo); )
 
