@@ -1,0 +1,36 @@
+From 3b717f0b38901c8ff6bcb9c4d9924c89fbb7491a Mon Sep 17 00:00:00 2001
+Message-Id: <3b717f0b38901c8ff6bcb9c4d9924c89fbb7491a.1481877275.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Fri, 16 Dec 2016 08:34:23 +0000
+Subject: [PATCH 1/1] Revert "Fix: ust-consumer: flush empty packets on
+ snapshot channel"
+
+This reverts commit 964f17f3183d74713de9075d3144c9a76f9e1076.
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ src/common/ust-consumer/ust-consumer.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/src/common/ust-consumer/ust-consumer.c b/src/common/ust-consumer/ust-consumer.c
+index 01d5ecf..678d528 100644
+--- a/src/common/ust-consumer/ust-consumer.c
++++ b/src/common/ust-consumer/ust-consumer.c
+@@ -1111,13 +1111,7 @@ static int snapshot_channel(uint64_t key, char *path, uint64_t relayd_id,
+ 			}
+ 		}
+ 
+-		/*
+-		 * If tracing is active, we want to perform a "full" buffer flush.
+-		 * Else, if quiescent, it has already been done by the prior stop.
+-		 */
+-		if (!stream->quiescent) {
+-			ustctl_flush_buffer(stream->ustream, 0);
+-		}
++		ustctl_flush_buffer(stream->ustream, 1);
+ 
+ 		ret = lttng_ustconsumer_take_snapshot(stream);
+ 		if (ret < 0) {
+-- 
+2.5.0
+

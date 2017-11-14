@@ -1,3 +1,4 @@
+lttng-ust-doc-examples-disable.patch
 Remove-weak-attribute-on-hidden-symbols.patch
 Added-ARM-cntpct-clock-plugin.patch
 Added-AARCH64-support-to-the-clock-plugin.patch

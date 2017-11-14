@@ -1,0 +1,31 @@
+From 8b193d07ea0de6d2dc52257152227580ff652eb0 Mon Sep 17 00:00:00 2001
+Message-Id: <8b193d07ea0de6d2dc52257152227580ff652eb0.1508305871.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Wed, 18 Oct 2017 05:51:06 +0000
+Subject: [PATCH 1/1] tests: removed kernel module check
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ tests/regression/tools/regen-statedump/test_kernel | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/tests/regression/tools/regen-statedump/test_kernel b/tests/regression/tools/regen-statedump/test_kernel
+index 85afe76..857444b 100755
+--- a/tests/regression/tools/regen-statedump/test_kernel
++++ b/tests/regression/tools/regen-statedump/test_kernel
+@@ -29,12 +29,6 @@ NUM_TESTS=11
+ 
+ source $TESTDIR/utils/utils.sh
+ 
+-# LTTng kernel modules check
+-out=`ls /lib/modules/$(uname -r)/extra | grep lttng`
+-if [ -z "$out" ]; then
+-	BAIL_OUT "LTTng modules not detected."
+-fi
+-
+ function test_kernel_local ()
+ {
+ 	diag "Test kernel local with statedump regeneration"
+-- 
+2.5.0
+

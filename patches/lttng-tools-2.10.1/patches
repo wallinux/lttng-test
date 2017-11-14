@@ -4,10 +4,11 @@ lttng-tools-filter-random-filename-of-tests-output.patch
 Allow-multiple-attempts-to-connect-to-relayd-if-rela.patch
 root_regression-tests-updated-to-succeed-on-RCS-targ.patch
 Fix-consumerd-memory-leak-when-using-snapshot-sessio.patch
-Using-cat-instead-of-man-to-show-help-text.patch
 Added-tests-for-ARM-CNTPCT-clock-plugin.patch
 Added-support-for-BFN-clock.patch
 Added-BFN-tests.patch
 Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
 0001-lttng-commands-stuck-after-repetitive-restarts-with-.patch
 Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
+tests-removed-kernel-module-check.patch
+0001-tests-epoll_wait-missing-in-aarch64.patch

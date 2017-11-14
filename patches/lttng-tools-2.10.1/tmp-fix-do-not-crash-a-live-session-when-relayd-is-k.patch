@@ -1,0 +1,38 @@
+From 95572e2ab86c1edaf8be04987178f1f8d2a8660c Mon Sep 17 00:00:00 2001
+Message-Id: <95572e2ab86c1edaf8be04987178f1f8d2a8660c.1489147694.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Fri, 10 Mar 2017 13:08:06 +0100
+Subject: [PATCH 1/1] tmp fix: do not crash a live session when relayd is
+ killed
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ src/common/index/index.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/src/common/index/index.c b/src/common/index/index.c
+index b481badb..d91eee65 100644
+--- a/src/common/index/index.c
++++ b/src/common/index/index.c
+@@ -129,8 +129,16 @@ int lttng_index_file_write(const struct lttng_index_file *index_file,
+ 		const struct ctf_packet_index *element)
+ {
+ 	ssize_t ret;
+-	int fd = index_file->fd;
+-	size_t len = index_file->element_len;
++	int fd;
++	size_t len;
++
++	if (index_file == NULL) {
++		PERROR("index file == NULL");
++		goto error;
++	}
++
++	fd = index_file->fd;
++	len = index_file->element_len;
+ 
+ 	assert(element);
+ 
+-- 
+2.11.0
+
