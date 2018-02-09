@@ -1,0 +1,149 @@
+#!/bin/bash
+
+LOOP=1
+if [ $# -gt 0 ]; then
+    LOOP=$1
+fi
+
+SESSION=rat_trace
+CHANNEL=rat_ktrace
+SAVED_SESSION=$HOME/.lttng/sessions/$SESSION.lttng
+
+SYSCALL_EVENTS="\
+restart_syscall,\
+exit,\
+read,\
+write,\
+open,\
+close,\
+execve,\
+ioctl,\
+fcntl,\
+ptrace,\
+mmap,\
+munmap,\
+fsync,\
+syslog,\
+select,\
+msync,\
+flock,\
+fdatasync,\
+mlock,\
+munlock,\
+mlockall,\
+munlockall,\
+futex,\
+mremap,\
+poll,\
+epoll_ctl,\
+epoll_wait,\
+mq_timedsend,\
+mq_timedreceive,\
+mq_notify,\
+socket,\
+listen,\
+recvfrom,\
+sendmsg,\
+recvmsg,\
+semop,\
+semget,\
+msgsnd,\
+msgrcv,\
+ppoll,\
+epoll_pwait,\
+eventfd2,\
+preadv,\
+recvmmsg,\
+syncfs,\
+sendmmsg,\
+setns,\
+mmap2"
+
+TP_EVENTS="\
+sched_switch,\
+irq_handler_entry,\
+irq_handler_exit,\
+softirq_entry,\
+softirq_exit,\
+softirq_raise"
+
+function usage()
+{
+    echo -e "\n$(basename $0) -h -c <no_of_lttng_loops>"
+    echo -e " -c   clean: removed saved session"
+    echo -e ""
+}
+
+function run_stress()
+{
+    ./stresstest status
+    if [ $? = 0 ]; then
+	./stresstest start &> /tmp/stress.log
+    fi
+}
+
+function start_lttng_sessiond()
+{
+    pgrep lttng-sessiond > /dev/null
+    if [ $? != 0 ]; then
+	echo starting lttng-sessiond
+	lttng create whatever
+	lttng destroy whatever
+    fi
+}
+
+function run_lttng()
+{
+    start_lttng_sessiond
+    lttng destroy $SESSION > /dev/null
+    rm -rf $HOME/lttng-traces/$SESSION*
+    
+    if [ -e $SAVED_SESSION ]; then
+	lttng load $SESSION
+    else
+	lttng create $SESSION --snapshot
+	sleep 1
+	lttng enable-channel --kernel $CHANNEL --num-subbuf=16 --session=$SESSION
+	lttng enable-event --kernel --session=$SESSION --channel=$CHANNEL $TP_EVENTS
+	lttng enable-event --kernel --syscall --session=$SESSION --channel=$CHANNEL $SYSCALL_EVENTS
+	lttng save $SESSION
+    fi
+    dmesg -C
+    #lttng list $SESSION
+    lttng start $SESSION
+
+    sleep 30
+    lttng snapshot record --session=$SESSION
+    #lttng view --trace-path=$HOME/lttng-traces/ | head -20
+    dmesg
+    dmesg | grep BUG
+    if [ $? = 0 ]; then
+	exit -1
+    fi
+	
+}
+
+while getopts "ch" opt; do
+    case $opt in
+	c)
+	    echo "Removing saved session: $SESSION"
+	    rm -rf $SAVED_SESSION
+	    ;;
+	h)
+	    usage
+	    exit 0
+	    ;;
+	*)
+	    usage
+	    exit 0
+	    ;;
+
+    esac
+done
+shift $((OPTIND-1))
+
+run_stress
+for i in $(seq 1 $LOOP ); do
+    echo -e "\n -- $i"
+    run_lttng
+done

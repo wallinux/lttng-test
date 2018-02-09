@@ -1,0 +1,105 @@
+#!/bin/sh
+
+OUTDIR=/root/stresstest
+PGIDFILE=/tmp/$(basename $0).pgid
+
+function start()
+{
+    if [ -e $PGIDFILE ]; then
+	echo "$(basename $0) already started"
+	echo "Remove $PGIDFILE if it is not started and try again"
+	exit -1
+    fi
+
+    mkdir -p $OUTDIR
+
+    echo "Process id: $$"
+    PGID=$(ps -xao pid,pgid | grep $$ | head -1 | cut -d' ' -f2)
+    echo "Process group id: $PGID"
+    echo $PGID  > $PGIDFILE
+    # Most hardcore test (Ingo Molnar - http://lkml.org/lkml/2005/6/22/347)
+    # For Heavy CPU Ratio.
+    while true; do /bin/dd if=/dev/zero of=$OUTDIR/bigfile bs=1024000 count=1024; done &
+
+    # get the number of CPU's in the system (cpuinfo returns 1 based index, but we
+    # need 0 based, so subtract 1....
+    CPUNUM=$[`getconf _NPROCESSORS_ONLN`-1]
+
+    while true; do killall hackbench; sleep 5; done &
+    while true; do hackbench 20; done &
+
+    # some source code(ltp-full-20090531) consists of sched_setschduler() with FIFO 99.
+    cd /opt/ltp; while true; do ./runalltests.sh -x 40; done &
+
+    # For 100% Usage of CPU Load using ping
+    for CPUINDEX in $(seq 0 $CPUNUM)
+    do
+	taskset -c $CPUINDEX /bin/ping -l 100000 -q -s 10 -f localhost &
+    done
+
+    # For 100% Usage of I/O Load using linux-2.6.30 tar source like tiobench s/w.
+    # Don't forget disk total usage ratio (ex: df ).
+    # git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git linux-2.6.30
+    cd /opt
+    for CPUINDEX in $(seq 0 $CPUNUM); do
+	while true; do taskset -c $CPUINDEX tar cvzf $OUTDIR/test1.tgz ltp; done  &
+    done
+
+    # Estimate file space usage ( for I/O Load)
+    for CPUINDEX in $(seq 0 $CPUNUM); do
+	while true; do taskset -c $CPUINDEX /usr/bin/du /; done &
+    done
+
+    # Network Stress ( Network Performance & Stress )
+    # /usr/bin/netserver
+    # /usr/bin/netperf -H 192.168.155.20 -t TCP_STREAM -A 16K,16K -l 3600
+    # Streamming Stress using firefox webbrowser.
+    # firefox http://www.intomail.net/stream.php
+
+    # USB Disk I/O Stress(External HDD's I/O )
+    # cd /media/usb/
+    # taskset -c 2 tar cvzf test5.tgz  /media/usb/linux-2.6.30 &
+    exit 0
+}
+
+function stop()
+{
+    if [ ! -e $PGIDFILE ]; then
+	echo "$(basename $0) not started"
+	exit -1
+    fi
+
+    PGID=$(cat $PGIDFILE)
+    rm $PGIDFILE
+    echo "Kill all process with process group id: $PGID"
+    kill -9 -- -$PGID
+    exit 0
+}
+
+function status()
+{
+    if [ ! -e $PGIDFILE ]; then
+	echo "$(basename $0) not running"
+	exit 0
+    else
+	PGID=$(cat $PGIDFILE)
+	echo "$(basename $0) running, PGID=$PGID"
+	exit 1
+    fi
+}
+
+function list_processes()
+{
+    if [ ! -e $PGIDFILE ]; then
+	echo "$(basename $0) not running"
+	exit 0
+    else
+	PGID=$(cat $PGIDFILE)
+	ps -xao pid,pgid,args | grep $PGID 
+	exit 1
+    fi
+}
+
+$1
+
+echo "usage $0 [start|stop|status|list_processes]"
