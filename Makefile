@@ -115,10 +115,10 @@ repo.bls:
 		popd >/dev/null; \
 	)
 
-LIBURCU_VER=v0.9.4
-LTTNGUST_VER=v2.9.1
-LTTNGTOOLS_VER=v2.9.6
-BABELTRACE_VER=v1.5.3
+LIBURCU_VER=v0.9.5
+LTTNGUST_VER=v2.10.1
+LTTNGTOOLS_VER=v2.10.2
+BABELTRACE_VER=v1.5.4
 
 rcs.checkout:
 	$(TRACE)
@@ -173,10 +173,10 @@ stable-2.9.checkout:
 
 stable-2.10.checkout:
 	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,origin/stable-0.10,stable-0.10 )
+	$(Q)$(call run-create,userspace-rcu,origin/stable-0.9,stable-0.9 )
 	$(Q)$(call run-create,lttng-ust,origin/stable-2.10,stable-2.10 )
 	$(Q)$(call run-create,lttng-tools,origin/stable-2.10,stable-2.10 )
-	$(Q)$(call run-create,babeltrace,origin/stable-2.0,stable-2.0 )
+	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
 	$(MAKE) repo.pull repo.bls
 	$(Q)$(call create-builddir,stable-2.10)
 

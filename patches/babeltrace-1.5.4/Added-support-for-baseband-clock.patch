@@ -1,0 +1,281 @@
+From c42d3864a8b5fe1c22e1ade3a2c74512cb06613e Mon Sep 17 00:00:00 2001
+Message-Id: <c42d3864a8b5fe1c22e1ade3a2c74512cb06613e.1505205573.git.anders.wallin@windriver.com>
+From: Fredrik Markstrom <fredrik.markstrom@gmail.com>
+Date: Mon, 24 Nov 2014 08:57:58 +0100
+Subject: [PATCH 1/1] Added support for baseband clock
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ converter/babeltrace.c                             | 12 ++++++++
+ formats/ctf-text/ctf-text.c                        |  7 +++++
+ formats/ctf/ctf.c                                  | 36 +++++++++++++++++++++-
+ formats/ctf/events-private.h                       | 16 ++++++++++
+ .../ctf/metadata/ctf-visitor-generate-io-struct.c  |  9 ++++--
+ include/babeltrace/babeltrace-internal.h           |  3 +-
+ include/babeltrace/ctf-ir/metadata.h               |  2 ++
+ include/babeltrace/ctf/types.h                     |  3 ++
+ include/babeltrace/format-internal.h               |  1 +
+ 9 files changed, 84 insertions(+), 5 deletions(-)
+
+diff --git a/converter/babeltrace.c b/converter/babeltrace.c
+index f74384e..d7386da 100644
+--- a/converter/babeltrace.c
++++ b/converter/babeltrace.c
+@@ -109,6 +109,8 @@ enum {
+ 	OPT_CLOCK_SECONDS,
+ 	OPT_CLOCK_DATE,
+ 	OPT_CLOCK_GMT,
++	OPT_CLOCK_BFN,
++	OPT_CLOCK_LBFN,
+ 	OPT_CLOCK_FORCE_CORRELATE,
+ 	OPT_STREAM_INTERSECTION,
+ 	OPT_DEBUG_INFO_DIR,
+@@ -142,6 +144,8 @@ static struct poptOption long_options[] = {
+ 	{ "clock-seconds", 0, POPT_ARG_NONE, NULL, OPT_CLOCK_SECONDS, NULL, NULL },
+ 	{ "clock-date", 0, POPT_ARG_NONE, NULL, OPT_CLOCK_DATE, NULL, NULL },
+ 	{ "clock-gmt", 0, POPT_ARG_NONE, NULL, OPT_CLOCK_GMT, NULL, NULL },
++	{ "clock-bfn", 0, POPT_ARG_NONE, NULL, OPT_CLOCK_BFN, NULL, NULL },
++	{ "clock-lbfn", 0, POPT_ARG_NONE, NULL, OPT_CLOCK_LBFN, NULL, NULL },
+ 	{ "clock-force-correlate", 0, POPT_ARG_NONE, NULL, OPT_CLOCK_FORCE_CORRELATE, NULL, NULL },
+ 	{ "stream-intersection", 0, POPT_ARG_NONE, NULL, OPT_STREAM_INTERSECTION, NULL, NULL },
+ #ifdef ENABLE_DEBUG_INFO
+@@ -190,6 +194,8 @@ static void usage(FILE *fp)
+ 	fprintf(fp, "      --clock-offset-ns ns       Clock offset in nanoseconds\n");
+ 	fprintf(fp, "      --clock-seconds            Print the timestamps as [sec.ns]\n");
+ 	fprintf(fp, "                                 (default is: [hh:mm:ss.ns])\n");
++	fprintf(fp, "      --clock-bfn		      Print BFN clock\n");
++	fprintf(fp, "      --clock-lbfn		      Print linear BFN clock\n");
+ 	fprintf(fp, "      --clock-date               Print clock date\n");
+ 	fprintf(fp, "      --clock-gmt                Print clock in GMT time zone (default: local time zone)\n");
+ 	fprintf(fp, "      --clock-force-correlate    Assume that clocks are inherently correlated\n");
+@@ -417,6 +423,12 @@ static int parse_options(int argc, char **argv)
+ 		case OPT_CLOCK_GMT:
+ 			opt_clock_gmt = 1;
+ 			break;
++		case OPT_CLOCK_BFN:
++			opt_clock_bfn = 1;
++			break;
++		case OPT_CLOCK_LBFN:
++			opt_clock_lbfn = 1;
++			break;
+ 		case OPT_CLOCK_FORCE_CORRELATE:
+ 			opt_clock_force_correlate = 1;
+ 			break;
+diff --git a/formats/ctf-text/ctf-text.c b/formats/ctf-text/ctf-text.c
+index 16f156d..2fefd6c 100644
+--- a/formats/ctf-text/ctf-text.c
++++ b/formats/ctf-text/ctf-text.c
+@@ -291,6 +291,13 @@ int ctf_text_write_event(struct bt_stream_pos *ppos, struct ctf_stream_definitio
+ 		if (!pos->print_names)
+ 			fprintf(pos->fp, "]");
+ 
++		if(opt_clock_bfn) {
++			ctf_print_bfn(pos->fp, stream, stream->bfn_timestamp);
++		}
++		if(opt_clock_lbfn) {
++			ctf_print_lbfn(pos->fp, stream, stream->bfn_timestamp);
++		}
++
+ 		if (pos->print_names)
+ 			fprintf(pos->fp, ", ");
+ 		else
+diff --git a/formats/ctf/ctf.c b/formats/ctf/ctf.c
+index d6d078f..b6a07ac 100644
+--- a/formats/ctf/ctf.c
++++ b/formats/ctf/ctf.c
+@@ -76,7 +76,9 @@
+ int opt_clock_cycles,
+ 	opt_clock_seconds,
+ 	opt_clock_date,
+-	opt_clock_gmt;
++	opt_clock_gmt,
++	opt_clock_bfn,
++	opt_clock_lbfn;
+ 
+ uint64_t opt_clock_offset;
+ uint64_t opt_clock_offset_ns;
+@@ -298,6 +300,8 @@ void ctf_update_timestamp(struct ctf_stream_definition *stream,
+ 		stream->cycles_timestamp = integer_definition->value._unsigned;
+ 		stream->real_timestamp = ctf_get_real_timestamp(stream,
+ 				stream->cycles_timestamp);
++		stream->bfn_timestamp = ctf_get_bfn_timestamp(stream,
++				stream->cycles_timestamp);
+ 		return;
+ 	}
+ 	/* keep low bits */
+@@ -316,6 +320,8 @@ void ctf_update_timestamp(struct ctf_stream_definition *stream,
+ 	/* convert to real timestamp */
+ 	stream->real_timestamp = ctf_get_real_timestamp(stream,
+ 			stream->cycles_timestamp);
++	stream->bfn_timestamp = ctf_get_bfn_timestamp(stream,
++			stream->cycles_timestamp);
+ }
+ 
+ /*
+@@ -409,6 +415,32 @@ void ctf_print_timestamp(FILE *fp,
+ 	}
+ }
+ 
++void ctf_print_bfn(FILE *fp,
++		struct ctf_stream_definition *stream,
++		uint64_t lbfn)
++{
++	if(lbfn != ~0ULL) {
++		unsigned int bf  = (unsigned int)(lbfn % 256);
++		unsigned int hf  = (unsigned int)((lbfn / 256) % 150);
++		uint64_t  tmpbfn = (unsigned int)(lbfn / 256 / 150);
++		unsigned int bfn  = (unsigned int)(tmpbfn % 4096);
++		uint64_t xbfn = tmpbfn / 4096;
++		fprintf(fp, " [%" PRIu64 ".%04u.%03u.%03u]", xbfn, bfn, hf, bf);
++	}
++	else
++		fprintf(fp, " [NA]");
++}
++
++void ctf_print_lbfn(FILE *fp,
++		struct ctf_stream_definition *stream,
++		uint64_t lbfn)
++{
++	if(lbfn != ~0ULL)
++		fprintf(fp, " [%" PRIu64 "]", lbfn);
++	else
++		fprintf(fp, " [NA]");
++}
++
+ static
+ void print_uuid(FILE *fp, unsigned char *uuid)
+ {
+@@ -2198,6 +2230,7 @@ int ctf_open_file_stream_read(struct ctf_trace *td, const char *path, int flags,
+ 	 * For now, only a single clock per trace is supported.
+ 	 */
+ 	file_stream->parent.current_clock = td->parent.single_clock;
++	file_stream->parent.bfn_clock = td->parent.bfn_clock;
+ 
+ 	/*
+ 	 * Allocate the index name for this stream and try to open it.
+@@ -2527,6 +2560,7 @@ int ctf_open_mmap_stream_read(struct ctf_trace *td,
+ 	 * For now, only a single clock per trace is supported.
+ 	 */
+ 	file_stream->parent.current_clock = td->parent.single_clock;
++	file_stream->parent.bfn_clock = td->parent.bfn_clock;
+ 
+ 	/* Add stream file to stream class */
+ 	g_ptr_array_add(file_stream->parent.stream_class->streams,
+diff --git a/formats/ctf/events-private.h b/formats/ctf/events-private.h
+index 9bea75d..6f644fa 100644
+--- a/formats/ctf/events-private.h
++++ b/formats/ctf/events-private.h
+@@ -53,4 +53,20 @@ uint64_t ctf_get_real_timestamp(struct ctf_stream_definition *stream,
+ 	return ts_nsec;
+ }
+ 
++static inline
++uint64_t ctf_get_bfn_timestamp(struct ctf_stream_definition *stream,
++			uint64_t timestamp)
++{
++	struct ctf_trace *trace = stream->stream_class->trace;
++	uint64_t lbfn;
++
++	if(trace->parent.bfn_clock == NULL)
++		return ~0ULL;
++
++	timestamp -= trace->parent.bfn_clock->offset;
++	lbfn = (uint64_t)((double)timestamp * trace->parent.bfn_clock->freq / trace->parent.single_clock->freq);
++
++	return lbfn;
++}
++
+ #endif /* _CTF_EVENTS_PRIVATE_H */
+diff --git a/formats/ctf/metadata/ctf-visitor-generate-io-struct.c b/formats/ctf/metadata/ctf-visitor-generate-io-struct.c
+index 3b2fc78..f1b4879 100644
+--- a/formats/ctf/metadata/ctf-visitor-generate-io-struct.c
++++ b/formats/ctf/metadata/ctf-visitor-generate-io-struct.c
+@@ -2486,12 +2486,15 @@ int ctf_clock_visit(FILE *fd, int depth, struct ctf_node *node, struct ctf_trace
+ 		fprintf(fd, "[error] %s: missing name field in clock declaration\n", __func__);
+ 		goto error;
+ 	}
+-	if (g_hash_table_size(trace->parent.clocks) > 0) {
+-		fprintf(fd, "[error] Only CTF traces with a single clock description are supported by this babeltrace version.\n");
++	if (g_hash_table_size(trace->parent.clocks) > 1) {
++		fprintf(fd, "[error] Only CTF traces with one or two clock descriptions are supported by this babeltrace version.\n");
+ 		ret = -EINVAL;
+ 		goto error;
+ 	}
+-	trace->parent.single_clock = clock;
++	if(strcmp(g_quark_to_string(clock->name), "bfn") == 0)
++		trace->parent.bfn_clock = clock;
++	else
++		trace->parent.single_clock = clock;
+ 	g_hash_table_insert(trace->parent.clocks, (gpointer) (unsigned long) clock->name, clock);
+ 	return 0;
+ 
+diff --git a/include/babeltrace/babeltrace-internal.h b/include/babeltrace/babeltrace-internal.h
+index 6f8e200..234ecc0 100644
+--- a/include/babeltrace/babeltrace-internal.h
++++ b/include/babeltrace/babeltrace-internal.h
+@@ -158,7 +158,6 @@ extern int babeltrace_verbose, babeltrace_debug;
+ #ifndef max
+ #define max(a, b)	(((a) > (b)) ? (a) : (b))
+ #endif
+-
+ /*
+  * BT_HIDDEN: set the hidden attribute for internal functions
+  * On Windows, symbols are local unless explicitly exported,
+@@ -205,6 +204,8 @@ extern int opt_all_field_names,
+ 	opt_clock_seconds,
+ 	opt_clock_date,
+ 	opt_clock_gmt,
++	opt_clock_bfn,
++	opt_clock_lbfn,
+ 	opt_clock_force_correlate,
+ 	opt_debug_info_full_path;
+ 
+diff --git a/include/babeltrace/ctf-ir/metadata.h b/include/babeltrace/ctf-ir/metadata.h
+index 4d291c7..db15e52 100644
+--- a/include/babeltrace/ctf-ir/metadata.h
++++ b/include/babeltrace/ctf-ir/metadata.h
+@@ -58,6 +58,7 @@ struct ctf_stream_definition {
+ 	struct ctf_stream_declaration *stream_class;
+ 	uint64_t real_timestamp;		/* Current timestamp, in ns */
+ 	uint64_t cycles_timestamp;		/* Current timestamp, in cycles */
++	uint64_t bfn_timestamp;
+ 	uint64_t event_id;			/* Current event ID */
+ 	int has_timestamp;
+ 	uint64_t stream_id;
+@@ -71,6 +72,7 @@ struct ctf_stream_definition {
+ 	int stream_definitions_created;
+ 
+ 	struct ctf_clock *current_clock;
++	struct ctf_clock *bfn_clock;
+ 
+ 	/* Event discarded information */
+ 	uint64_t events_discarded;
+diff --git a/include/babeltrace/ctf/types.h b/include/babeltrace/ctf/types.h
+index cc8acbf..95149a7 100644
+--- a/include/babeltrace/ctf/types.h
++++ b/include/babeltrace/ctf/types.h
+@@ -247,6 +247,9 @@ void ctf_pos_get_event(struct ctf_stream_pos *pos)
+ 
+ void ctf_print_timestamp(FILE *fp, struct ctf_stream_definition *stream,
+ 			uint64_t timestamp);
++
++void ctf_print_bfn(FILE *fp, struct ctf_stream_definition *stream,
++		   uint64_t linear_bfn);
+ int ctf_append_trace_metadata(struct bt_trace_descriptor *tdp,
+ 			FILE *metadata_fp);
+ 
+diff --git a/include/babeltrace/format-internal.h b/include/babeltrace/format-internal.h
+index 78f2fd5..aad3b2d 100644
+--- a/include/babeltrace/format-internal.h
++++ b/include/babeltrace/format-internal.h
+@@ -48,6 +48,7 @@ struct bt_trace_descriptor {
+ 	struct ctf_clock *single_clock;		/* currently supports only one clock */
+ 	bool interval_set;
+ 	struct packet_index_time interval_real; /* Interval of events to consider */
++	struct ctf_clock *bfn_clock;
+ };
+ 
+ static inline void init_trace_descriptor(struct bt_trace_descriptor *td) {
+-- 
+2.5.0
+
