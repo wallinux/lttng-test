@@ -1,0 +1,52 @@
+#!/bin/sh
+
+SESSION=tracetest
+LTTNG_SESSIOND="lttng-sessiond --no-kernel -d"
+KILL_SESSIOND="killall -w lttng-sessiond"
+export LTTNG_HOME=$HOME
+
+init ()
+{
+    $KILL_SESSIOND
+    rm -rf $LTTNG_HOME/lttng-traces
+    rm -rf $LTTNG_HOME/.lttng
+}
+
+save_session()
+{
+    $LTTNG_SESSIOND
+    lttng create $SESSION
+    lttng enable-event -a -u
+    lttng list $SESSION
+    lttng save -a 
+    lttng destroy $SESSION
+}
+
+load_session()
+{
+    $LTTNG_SESSIOND
+    lttng load -a 
+    lttng list $SESSION
+    lttng destroy $SESSION
+}
+
+autoload_session ()
+{
+    mkdir -p $LTTNG_HOME/.lttng/sessions/auto
+    cp $LTTNG_HOME/.lttng/sessions/$SESSION.lttng $LTTNG_HOME/.lttng/sessions/auto/
+    $LTTNG_SESSIOND
+    sleep 5
+    lttng list $SESSION
+    lttng destroy $SESSION
+}
+
+init
+
+save_session
+$KILL_SESSIOND
+
+load_session
+$KILL_SESSIOND
+
+autoload_session
+$KILL_SESSIOND
