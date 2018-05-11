@@ -1,0 +1,29 @@
+#!/bin/sh
+
+SESSION=tracetest
+LTTNG_SESSIOND="lttng-sessiond --no-kernel -d"
+KILL_SESSIOND="killall -w lttng-sessiond"
+export LTTNG_HOME=$HOME
+
+echo "Cleanup before start" 
+$KILL_SESSIOND
+rm -rf $LTTNG_HOME/lttng-traces
+rm -rf $LTTNG_HOME/.lttng
+
+echo "Save simple session"
+lttng create $SESSION
+lttng enable-event -a -u
+lttng list $SESSION
+lttng save -a 
+$KILL_SESSIOND
+
+echo "Copy saved session to auto load"
+mkdir -p $LTTNG_HOME/.lttng/sessions/auto
+cp $LTTNG_HOME/.lttng/sessions/$SESSION.lttng $LTTNG_HOME/.lttng/sessions/auto/
+
+echo "Start lttng-sessiond - will hang forever in 2.10.4" 
+$LTTNG_SESSIOND
+# HERE IT HANGS FOREVER!!
+
+echo "Working!!"
+
