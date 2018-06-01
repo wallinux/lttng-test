@@ -9,4 +9,3 @@ Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
 tests-removed-kernel-module-check.patch
 0001-tests-epoll_wait-missing-in-aarch64.patch
 0001-tmpfix-using-nroff-instead-of-man.patch
-Fix-quiet-option-functionality.patch

@@ -1,6 +1,5 @@
 Revert-Build-look-for-python-3.0-when-building-pytho.patch
 runtest.patch
-lttng-tools-filter-random-filename-of-tests-output.patch
 Allow-multiple-attempts-to-connect-to-relayd-if-rela.patch
 root_regression-tests-updated-to-succeed-on-RCS-targ.patch
 Fix-consumerd-memory-leak-when-using-snapshot-sessio.patch
