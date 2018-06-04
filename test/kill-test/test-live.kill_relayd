@@ -1,0 +1,67 @@
+#!/bin/bash
+
+[ -z $NO_OF_THREADS ] && NO_OF_THREADS=8
+[ -z $LOOP ] && LOOP=10
+[ -z $LIVETIME ] && LIVETIME=1000000
+[ -z $BUFSIZE ] && BUFSIZE=128k
+
+#export LTTNG_UST_DEBUG=1
+
+SERVER_IP=localhost
+SESSION=test
+CHANNEL=test
+TRACEDIR=$PWD/traces
+SESSIOND_LOGFILE=/tmp/lttng-sessiond.log
+RELAYD_LOGFILE=/tmp/lttng-relayd.log
+#DEBUG=-v
+
+target_prepare () {
+    killall lttng-sessiond 2> /dev/null
+    killall lttng-relayd 2> /dev/null
+    ulimit -c unlimited
+    rm -rf $TRACEDIR
+    sleep 1
+    lttng-sessiond $DEBUG --no-kernel -b &> $SESSIOND_LOGFILE 
+    lttng-relayd $DEBUG -o $TRACEDIR -b &> $RELAYD_LOGFILE
+    sleep 1
+
+}
+
+target_clean () {
+    echo $0
+}
+
+target_start () {
+    lttng enable-channel -s $1 $CHANNEL -u --subbuf-size $BUFSIZE
+    lttng enable-event -s $1 -c $CHANNEL -a -u
+    lttng start $1
+    lttng list $1
+}
+
+target_stop () {
+    lttng stop $1
+    lttng list $1
+    lttng destroy $1
+}
+
+start_trace () {
+    lttng create $1 -U net://$SERVER_IP --live $LIVETIME
+    target_start $1
+    ./tracetest2 $LOOP $NO_OF_THREADS
+    sleep 3
+    #target_stop $1
+    babeltrace $TRACEDIR | wc -l
+    killall lttng-relayd
+    sleep 3
+}
+
+############################
+target_prepare
+start_trace $SESSION
+target_clean
+
+echo --- $SESSIOND_LOGFILE
+grep PERROR $SESSIOND_LOGFILE
+
+echo --- $RELAYD_LOGFILE
+grep PERROR $RELAYD_LOGFILE

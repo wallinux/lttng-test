@@ -11,7 +11,8 @@ SERVER_IP=localhost
 SESSION=test
 CHANNEL=test
 TRACEDIR=$PWD/traces
-LOGFILE=$PWD/lttng-sessiond.log
+SESSIOND_LOGFILE=/tmp/lttng-sessiond.log
+RELAYD_LOGFILE=/tmp/lttng-relayd.log
 #DEBUG=-v
 
 target_prepare () {
@@ -20,7 +21,10 @@ target_prepare () {
     ulimit -c unlimited
     rm -rf $TRACEDIR
     sleep 1
-    lttng-sessiond $DEBUG --no-kernel -b &> $LOGFILE 
+    lttng-sessiond $DEBUG --no-kernel -b &> $SESSIOND_LOGFILE 
+    lttng-relayd $DEBUG -o $TRACEDIR -b &> $RELAYD_LOGFILE
+    sleep 1
+
 }
 
 target_clean () {
@@ -41,15 +45,13 @@ target_stop () {
 }
 
 start_trace () {
-    lttng-relayd -o $TRACEDIR &
-    sleep 1
     lttng create $1 -U net://$SERVER_IP --live $LIVETIME
     target_start $1
     ./tracetest2 $LOOP $NO_OF_THREADS
     sleep 3
     #target_stop $1
     babeltrace $TRACEDIR | wc -l
-    killall lttng-relayd
+    killall lttng-sessiond
     sleep 3
 }
 
@@ -58,4 +60,8 @@ target_prepare
 start_trace $SESSION
 target_clean
 
-grep PERROR $LOGFILE
+echo --- $SESSIOND_LOGFILE
+grep PERROR $SESSIOND_LOGFILE
+
+echo --- $RELAYD_LOGFILE
+grep PERROR $RELAYD_LOGFILE
