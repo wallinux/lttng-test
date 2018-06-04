@@ -38,19 +38,14 @@ target_start () {
     lttng list $1
 }
 
-target_stop () {
-    lttng stop $1
-    lttng list $1
-    lttng destroy $1
-}
-
 start_trace () {
     lttng create $1 -U net://$SERVER_IP --live $LIVETIME
     target_start $1
     ./tracetest2 $LOOP $NO_OF_THREADS
     sleep 3
-    #target_stop $1
-    babeltrace $TRACEDIR | wc -l
+    lttng destroy $1
+    #sleep 1
+    #babeltrace $TRACEDIR | wc -l
     killall lttng-relayd
     sleep 3
 }
