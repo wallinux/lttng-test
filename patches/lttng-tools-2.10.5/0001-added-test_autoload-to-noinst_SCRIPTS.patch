@@ -1,0 +1,24 @@
+From 3f015dbab5b6d551324c94748c41309270e01ca3 Mon Sep 17 00:00:00 2001
+Message-Id: <3f015dbab5b6d551324c94748c41309270e01ca3.1532549609.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Wed, 25 Jul 2018 20:11:29 +0000
+Subject: [PATCH] added test_autoload to noinst_SCRIPTS
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ tests/regression/tools/save-load/Makefile.am | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tests/regression/tools/save-load/Makefile.am b/tests/regression/tools/save-load/Makefile.am
+index 5cd6776..a108002 100644
+--- a/tests/regression/tools/save-load/Makefile.am
++++ b/tests/regression/tools/save-load/Makefile.am
+@@ -1,4 +1,4 @@
+-noinst_SCRIPTS = test_save test_load
++noinst_SCRIPTS = test_save test_load test_autoload
+ EXTRA_DIST = $(noinst_SCRIPTS) load-42.lttng load-42-complex.lttng \
+ 	load-42-trackers.lttng
+ 
+-- 
+2.5.0
+
