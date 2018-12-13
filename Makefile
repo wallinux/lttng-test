@@ -180,6 +180,15 @@ stable-2.10.checkout:
 	$(MAKE) repo.pull repo.bls
 	$(Q)$(call create-builddir,stable-2.10)
 
+stable-2.11.checkout:
+	$(TRACE)
+	$(Q)$(call run-create,userspace-rcu,origin/stable-0.9,stable-0.9 )
+	$(Q)$(call run-create,lttng-ust,origin/stable-2.11,stable-2.11 )
+	$(Q)$(call run-create,lttng-tools,origin/stable-2.11,stable-2.11 )
+	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
+	$(MAKE) repo.pull repo.bls
+	$(Q)$(call create-builddir,stable-2.11)
+
 master.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,origin/master,master )
