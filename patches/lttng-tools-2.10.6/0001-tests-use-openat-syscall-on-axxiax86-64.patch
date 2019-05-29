@@ -1,0 +1,248 @@
+From f8841eb159d4607a20ff69afacca2f95eb09a8b0 Mon Sep 17 00:00:00 2001
+From: Beniamin Sandu <Beniamin.Sandu@windriver.com>
+Date: Tue, 4 Dec 2018 16:10:28 +0200
+Subject: [PATCH] tests: use openat syscall on axxiax86-64
+
+Signed-off-by: Beniamin Sandu <Beniamin.Sandu@windriver.com>
+---
+ tests/regression/kernel/test_syscall | 74 ++++++++++++++++++------------------
+ 1 file changed, 37 insertions(+), 37 deletions(-)
+
+diff --git a/tests/regression/kernel/test_syscall b/tests/regression/kernel/test_syscall
+index 57adad9..c70c9fa 100755
+--- a/tests/regression/kernel/test_syscall
++++ b/tests/regression/kernel/test_syscall
+@@ -127,18 +127,18 @@ function test_syscall_single()
+ 
+ 	create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+ 
+-	lttng_enable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_enable_kernel_syscall_ok $SESSION_NAME "openat"
+ 
+ 	start_lttng_tracing_ok
+ 	eval ${TESTCMD}
+ 	stop_lttng_tracing_ok
+ 
+ 	# ensure each is there.
+-	validate_trace_exp "-e syscall_entry_open: -e compat_syscall_entry_open:" $TRACE_PATH
+-	validate_trace_exp "-e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	validate_trace_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat:" $TRACE_PATH
++	validate_trace_exp "-e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 
+ 	# ensure trace only contains those.
+-	validate_trace_only_exp "-e syscall_entry_open: -e compat_syscall_entry_open: -e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	validate_trace_only_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat: -e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 
+ 	destroy_lttng_session_ok $SESSION_NAME
+ 
+@@ -154,7 +154,7 @@ function test_syscall_two()
+ 
+ 	create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+ 
+-	lttng_enable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_enable_kernel_syscall_ok $SESSION_NAME "openat"
+ 	lttng_enable_kernel_syscall_ok $SESSION_NAME "close"
+ 
+ 	start_lttng_tracing_ok
+@@ -162,13 +162,13 @@ function test_syscall_two()
+ 	stop_lttng_tracing_ok
+ 
+ 	# ensure each is there.
+-	validate_trace_exp "-e syscall_entry_open: -e compat_syscall_entry_open:" $TRACE_PATH
+-	validate_trace_exp "-e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	validate_trace_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat:" $TRACE_PATH
++	validate_trace_exp "-e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 	validate_trace_exp "-e syscall_entry_close: -e compat_syscall_entry_close:" $TRACE_PATH
+ 	validate_trace_exp "-e syscall_exit_close: -e compat_syscall_exit_close:" $TRACE_PATH
+ 
+ 	# ensure trace only contains those.
+-	validate_trace_only_exp "-e syscall_entry_open: -e compat_syscall_entry_open: -e syscall_exit_open: -e compat_syscall_exit_open: -e syscall_entry_close: -e compat_syscall_entry_close: -e syscall_exit_close: -e compat_syscall_exit_close:" $TRACE_PATH
++	validate_trace_only_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat: -e syscall_exit_openat: -e compat_syscall_exit_openat: -e syscall_entry_close: -e compat_syscall_entry_close: -e syscall_exit_close: -e compat_syscall_exit_close:" $TRACE_PATH
+ 
+ 	destroy_lttng_session_ok $SESSION_NAME
+ 
+@@ -192,8 +192,8 @@ function test_syscall_all()
+ 	stop_lttng_tracing_ok
+ 
+ 	# ensure at least open and close are there.
+-	validate_trace_exp "-e syscall_entry_open: -e compat_syscall_entry_open:" $TRACE_PATH
+-	validate_trace_exp "-e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	validate_trace_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat:" $TRACE_PATH
++	validate_trace_exp "-e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 	validate_trace_exp "-e syscall_entry_close: -e compat_syscall_entry_close:" $TRACE_PATH
+ 	validate_trace_exp "-e syscall_exit_close: -e compat_syscall_exit_close:" $TRACE_PATH
+ 	# trace may contain other syscalls.
+@@ -216,14 +216,14 @@ function test_syscall_all_disable_one()
+ 	lttng_enable_kernel_syscall_ok $SESSION_NAME
+ 	# try to disable open system call: fails because enabler semantic of
+ 	# "all syscalls" is not "the open" system call.
+-	lttng_disable_kernel_syscall_fail $SESSION_NAME "open"
++	lttng_disable_kernel_syscall_fail $SESSION_NAME "openat"
+ 
+ 	start_lttng_tracing_ok
+ 	eval ${TESTCMD}
+ 	stop_lttng_tracing_ok
+ 
+-	# ensure "open" syscall is there.
+-	validate_trace_exp "-e syscall_entry_open: -e compat_syscall_entry_open: -e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	# ensure "openat" syscall is there.
++	validate_trace_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat: -e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 
+ 	# ensure "close" syscall is there.
+ 	validate_trace_exp "-e syscall_entry_close: -e compat_syscall_entry_close:" $TRACE_PATH
+@@ -247,7 +247,7 @@ function test_syscall_all_disable_two()
+ 	lttng_enable_kernel_syscall_ok $SESSION_NAME
+ 	# try to disable open and close system calls: fails because enabler
+ 	# semantic of "all syscalls" is not "the open" system call.
+-	lttng_disable_kernel_syscall_fail $SESSION_NAME "open"
++	lttng_disable_kernel_syscall_fail $SESSION_NAME "openat"
+ 	lttng_disable_kernel_syscall_fail $SESSION_NAME "close"
+ 
+ 	start_lttng_tracing_ok
+@@ -255,8 +255,8 @@ function test_syscall_all_disable_two()
+ 	eval ${TESTCMD}
+ 	stop_lttng_tracing_ok
+ 
+-	# ensure "open" syscall is there.
+-	validate_trace_exp "-e syscall_entry_open: -e compat_syscall_entry_open: -e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	# ensure "openat" syscall is there.
++	validate_trace_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat: -e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 
+ 	# ensure "close" syscall is there.
+ 	validate_trace_exp "-e syscall_entry_close: -e compat_syscall_entry_close:" $TRACE_PATH
+@@ -286,7 +286,7 @@ function test_syscall_enable_all_disable_all()
+ 	lttng_disable_kernel_syscall_ok $SESSION_NAME
+ 
+ 	start_lttng_tracing_ok
+-	# generates open, close, execve (at least)
++	# generates openat, close, execve (at least)
+ 	eval ${TESTCMD}
+ 	stop_lttng_tracing_ok
+ 
+@@ -320,8 +320,8 @@ function test_syscall_enable_all_disable_all_enable_all()
+ 	stop_lttng_tracing_ok
+ 
+ 	# ensure at least open and close are there.
+-	validate_trace_exp "-e syscall_entry_open: -e compat_syscall_entry_open:" $TRACE_PATH
+-	validate_trace_exp "-e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	validate_trace_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat:" $TRACE_PATH
++	validate_trace_exp "-e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 	validate_trace_exp "-e syscall_entry_close: -e compat_syscall_entry_close:" $TRACE_PATH
+ 	validate_trace_exp "-e syscall_exit_close: -e compat_syscall_exit_close:" $TRACE_PATH
+ 	# trace may contain other syscalls.
+@@ -350,7 +350,7 @@ function test_syscall_enable_all_disable_all_twice()
+ 	lttng_disable_kernel_syscall_ok $SESSION_NAME
+ 
+ 	start_lttng_tracing_ok
+-	# generates open, close, execve (at least)
++	# generates openat, close, execve (at least)
+ 	eval ${TESTCMD}
+ 	stop_lttng_tracing_ok
+ 
+@@ -372,12 +372,12 @@ function test_syscall_enable_one_disable_one()
+ 	create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+ 
+ 	# enable open system call
+-	lttng_enable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_enable_kernel_syscall_ok $SESSION_NAME "openat"
+ 	# disable open system call
+-	lttng_disable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_disable_kernel_syscall_ok $SESSION_NAME "openat"
+ 
+ 	start_lttng_tracing_ok
+-	# generates open, close, execve (at least)
++	# generates openat, close, execve (at least)
+ 	eval ${TESTCMD}
+ 	stop_lttng_tracing_ok
+ 
+@@ -399,14 +399,14 @@ function test_syscall_enable_two_disable_two()
+ 	create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+ 
+ 	# enable open and close system calls
+-	lttng_enable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_enable_kernel_syscall_ok $SESSION_NAME "openat"
+ 	lttng_enable_kernel_syscall_ok $SESSION_NAME "close"
+ 	# disable open and close system calls
+-	lttng_disable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_disable_kernel_syscall_ok $SESSION_NAME "openat"
+ 	lttng_disable_kernel_syscall_ok $SESSION_NAME "close"
+ 
+ 	start_lttng_tracing_ok
+-	# generates open, close, execve (at least)
++	# generates openat, close, execve (at least)
+ 	eval ${TESTCMD}
+ 	stop_lttng_tracing_ok
+ 
+@@ -428,22 +428,22 @@ function test_syscall_enable_two_disable_one()
+ 	create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+ 
+ 	# enable open and close system calls
+-	lttng_enable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_enable_kernel_syscall_ok $SESSION_NAME "openat"
+ 	lttng_enable_kernel_syscall_ok $SESSION_NAME "close"
+ 	# disable close system call
+ 	lttng_disable_kernel_syscall_ok $SESSION_NAME "close"
+ 
+ 	start_lttng_tracing_ok
+-	# generates open, close, execve (at least)
++	# generates openat, close, execve (at least)
+ 	eval ${TESTCMD}
+ 	stop_lttng_tracing_ok
+ 
+ 	# ensure open is there.
+-	validate_trace_exp "-e syscall_entry_open: -e compat_syscall_entry_open:" $TRACE_PATH
+-	validate_trace_exp "-e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	validate_trace_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat:" $TRACE_PATH
++	validate_trace_exp "-e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 
+ 	# ensure trace only contains those.
+-	validate_trace_only_exp "-e syscall_entry_open: -e compat_syscall_entry_open: -e syscall_exit_open: -e compat_syscall_exit_open:" $TRACE_PATH
++	validate_trace_only_exp "-e syscall_entry_openat: -e compat_syscall_entry_openat: -e syscall_exit_openat: -e compat_syscall_exit_openat:" $TRACE_PATH
+ 
+ 	destroy_lttng_session_ok $SESSION_NAME
+ 
+@@ -459,11 +459,11 @@ function test_syscall_disable_twice()
+ 
+ 	create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+ 
+-	lttng_enable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_enable_kernel_syscall_ok $SESSION_NAME "openat"
+ 	# First disable will succeed
+-	lttng_disable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_disable_kernel_syscall_ok $SESSION_NAME "openat"
+ 	# Second disable succeeds too, due to enabler semantic.
+-	lttng_disable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_disable_kernel_syscall_ok $SESSION_NAME "openat"
+ 
+ 	destroy_lttng_session_ok $SESSION_NAME
+ 
+@@ -520,7 +520,7 @@ function test_syscall_enable_all_enable_one()
+ 
+ 	lttng_enable_kernel_syscall_ok $SESSION_NAME
+ 	# Enabling an event already enabled succeeds, due to enabler semantic.
+-	lttng_enable_kernel_syscall_ok $SESSION_NAME "open"
++	lttng_enable_kernel_syscall_ok $SESSION_NAME "openat"
+ 
+ 	destroy_lttng_session_ok $SESSION_NAME
+ 
+@@ -539,7 +539,7 @@ function test_syscall_disable_all_disable_one()
+ 	lttng_enable_kernel_syscall_ok $SESSION_NAME
+ 	lttng_disable_kernel_syscall_ok $SESSION_NAME
+ 	# Disabling an event already disabled fails.
+-	lttng_disable_kernel_syscall_fail $SESSION_NAME "open"
++	lttng_disable_kernel_syscall_fail $SESSION_NAME "openat"
+ 
+ 	destroy_lttng_session_ok $SESSION_NAME
+ 
+@@ -577,7 +577,7 @@ function test_syscall_enable_channel_disable_one()
+ 	create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+ 
+ 	lttng_enable_kernel_channel_ok $SESSION_NAME $CHANNEL_NAME
+-	lttng_disable_kernel_syscall_fail $SESSION_NAME "open" $CHANNEL_NAME
++	lttng_disable_kernel_syscall_fail $SESSION_NAME "openat" $CHANNEL_NAME
+ 
+ 	destroy_lttng_session_ok $SESSION_NAME
+ 
+-- 
+2.7.4
+

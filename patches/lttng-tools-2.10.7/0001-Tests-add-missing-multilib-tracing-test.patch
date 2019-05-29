@@ -1,0 +1,463 @@
+From 4992d8e1a884771851c5c99d800a2631e1481e20 Mon Sep 17 00:00:00 2001
+From: Stefan Palade <stefan.palade@windriver.com>
+Date: Wed, 6 Mar 2019 15:06:39 +0000
+Subject: [PATCH] Tests: add missing multilib tracing test
+
+Adding test files for multilib tracing with multiple lttng-consumerd.
+By default only a single consumerd is started in ust based on long_bit value.
+I overide the sourced start_lttng_sessiond_opt  in local to allow us to start
+with both consumerd (32-bit/64-bit).
+
+Signed-off-by: Stefan Palade <stefan.palade@windriver.com>
+---
+ configure.ac                                  |   1 +
+ tests/Makefile.am                             |   4 +-
+ tests/multilib_regression                     |   1 +
+ tests/regression/Makefile.am                  |   1 +
+ tests/regression/ust/Makefile.am              |   2 +-
+ .../ust/multilib-session/Makefile.am          |  22 ++
+ .../ust/multilib-session/gen-nevents.c        |  53 +++++
+ .../ust/multilib-session/test_ml_trace        | 189 ++++++++++++++++++
+ tests/regression/ust/multilib-session/tp.c    |  17 ++
+ .../ust/multilib-session/ust_gen_nevents.h    |  60 ++++++
+ 10 files changed, 347 insertions(+), 3 deletions(-)
+ create mode 100644 tests/multilib_regression
+ create mode 100644 tests/regression/ust/multilib-session/Makefile.am
+ create mode 100644 tests/regression/ust/multilib-session/gen-nevents.c
+ create mode 100755 tests/regression/ust/multilib-session/test_ml_trace
+ create mode 100644 tests/regression/ust/multilib-session/tp.c
+ create mode 100644 tests/regression/ust/multilib-session/ust_gen_nevents.h
+
+diff --git a/configure.ac b/configure.ac
+index 032b0288..f4ae3d03 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1086,6 +1086,7 @@ AC_CONFIG_FILES([
+ 	tests/regression/ust/buffers-pid/Makefile
+ 	tests/regression/ust/periodical-metadata-flush/Makefile
+ 	tests/regression/ust/multi-session/Makefile
++	tests/regression/ust/multilib-session/Makefile
+ 	tests/regression/ust/overlap/Makefile
+ 	tests/regression/ust/overlap/demo/Makefile
+ 	tests/regression/ust/linking/Makefile
+diff --git a/tests/Makefile.am b/tests/Makefile.am
+index 51e9f2dd..e9caf981 100644
+--- a/tests/Makefile.am
++++ b/tests/Makefile.am
+@@ -14,8 +14,8 @@ else
+ endif
+ 
+ 
+-dist_noinst_SCRIPTS = run.sh fast_regression long_regression root_regression root_destructive_tests perf_regression rcs_regression
+-EXTRA_DIST = run.sh fast_regression long_regression root_regression README root_destructive_tests perf_regression rcs_regression
++dist_noinst_SCRIPTS = run.sh fast_regression long_regression root_regression root_destructive_tests perf_regression rcs_regression multilib_regression
++EXTRA_DIST = run.sh fast_regression long_regression root_regression README root_destructive_tests perf_regression rcs_regression multilib_regression
+ 
+ all-local:
+ 	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \
+diff --git a/tests/multilib_regression b/tests/multilib_regression
+new file mode 100644
+index 00000000..8b1a5371
+--- /dev/null
++++ b/tests/multilib_regression
+@@ -0,0 +1 @@
++regression/ust/multilib-session/test_ml_trace
+diff --git a/tests/regression/Makefile.am b/tests/regression/Makefile.am
+index 893aa64a..ddf01cf5 100644
+--- a/tests/regression/Makefile.am
++++ b/tests/regression/Makefile.am
+@@ -34,6 +34,7 @@ SUBDIRS += ust
+ TESTS += ust/before-after/test_before_after \
+ 	ust/buffers-pid/test_buffers_pid \
+ 	ust/multi-session/test_multi_session \
++	ust/multilib-session/test_ml_trace \
+ 	ust/nprocesses/test_nprocesses \
+ 	ust/overlap/test_overlap \
+ 	ust/java-jul/test_java_jul \
+diff --git a/tests/regression/ust/Makefile.am b/tests/regression/ust/Makefile.am
+index 06cf97a4..88a74323 100644
+--- a/tests/regression/ust/Makefile.am
++++ b/tests/regression/ust/Makefile.am
+@@ -3,7 +3,7 @@ SUBDIRS = nprocesses high-throughput low-throughput before-after multi-session \
+ 		overlap buffers-pid linking daemon exit-fast fork libc-wrapper \
+ 		periodical-metadata-flush java-jul java-log4j python-logging \
+ 		getcpu-override clock-override type-declarations \
+-		rotation-destroy-flush blocking
++		rotation-destroy-flush blocking multilib-session
+ 
+ if HAVE_OBJCOPY
+ SUBDIRS += baddr-statedump ust-dl
+diff --git a/tests/regression/ust/multilib-session/Makefile.am b/tests/regression/ust/multilib-session/Makefile.am
+new file mode 100644
+index 00000000..2cf49f0c
+--- /dev/null
++++ b/tests/regression/ust/multilib-session/Makefile.am
+@@ -0,0 +1,22 @@
++AM_CFLAGS += -I$(srcdir)
++
++noinst_PROGRAMS = gen-nevents
++gen_nevents_SOURCES = gen-nevents.c tp.c ust_gen_nevents.h
++gen_nevents_LDADD = -llttng-ust -lurcu-bp $(DL_LIBS)
++
++noinst_SCRIPTS = test_ml_trace
++EXTRA_DIST = test_ml_trace
++
++all-local:
++	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \
++		for script in $(EXTRA_DIST); do \
++			cp -f $(srcdir)/$$script $(builddir); \
++		done; \
++	fi
++
++clean-local:
++	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \
++		for script in $(EXTRA_DIST); do \
++			rm -f $(builddir)/$$script; \
++		done; \
++	fi
+diff --git a/tests/regression/ust/multilib-session/gen-nevents.c b/tests/regression/ust/multilib-session/gen-nevents.c
+new file mode 100644
+index 00000000..51400d05
+--- /dev/null
++++ b/tests/regression/ust/multilib-session/gen-nevents.c
+@@ -0,0 +1,53 @@
++/*
++ * Copyright (C) - 2009 Pierre-Marc Fournier
++ * Copyright (C) - 2011 Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
++ * Copyright (C) - 2012 David Goulet <dgoulet@efficios.com>
++ *
++ * This library is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU Lesser General Public License as published by the
++ * Free Software Foundation; version 2.1 of the License.
++ *
++ * This library is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
++ * for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public License
++ * along with this library; if not, write to the Free Software Foundation,
++ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
++ */
++
++#define _LGPL_SOURCE
++#include <arpa/inet.h>
++#include <fcntl.h>
++#include <signal.h>
++#include <stdarg.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/mman.h>
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <unistd.h>
++
++#define TRACEPOINT_DEFINE
++#include "ust_gen_nevents.h"
++
++int main(int argc, char **argv)
++{
++	int i, nr_iter = 100;
++	long value = 42;
++
++	if (argc == 2) {
++		nr_iter = atoi(argv[1]);
++	}
++
++	for (i = 0; i < nr_iter; i++) {
++		tracepoint(ust_gen_nevents, tptest0, i, value);
++		tracepoint(ust_gen_nevents, tptest1, i, value);
++		tracepoint(ust_gen_nevents, tptest2, i, value);
++		tracepoint(ust_gen_nevents, tptest3, i, value);
++	}
++
++	return 0;
++}
+diff --git a/tests/regression/ust/multilib-session/test_ml_trace b/tests/regression/ust/multilib-session/test_ml_trace
+new file mode 100755
+index 00000000..3715da39
+--- /dev/null
++++ b/tests/regression/ust/multilib-session/test_ml_trace
+@@ -0,0 +1,189 @@
++#!/bin/bash
++#
++# Copyright (C) - 2019 Stefan Palade <stefan.palade@windriver.com>
++# Copyright (C) - 2012 David Goulet <dgoulet@efficios.com>
++#
++# This library is free software; you can redistribute it and/or modify it under
++# the terms of the GNU Lesser General Public License as published by the Free
++# Software Foundation; version 2.1 of the License.
++#
++# This library is distributed in the hope that it will be useful, but WITHOUT
++# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
++# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
++# details.
++#
++# You should have received a copy of the GNU Lesser General Public License
++# along with this library; if not, write to the Free Software Foundation, Inc.,
++# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
++TEST_DESC="UST tracer - Multilib-session tracing with 32/64-bit consumerd"
++
++CURDIR=$(dirname $0)
++DIR32=$(readlink -f $CURDIR | sed -e 's/lib64/lib/g')/
++TESTDIR=$CURDIR/../../..
++NR_ITER=100
++SESSION_NAME="multilib-session"
++EVENT_NAME="ust_gen_nevents:tptest"
++NUM_TESTS=30
++
++source $TESTDIR/utils/utils.sh
++
++alias default_start_lttng_sessiond_opt=start_lttng_sessiond_opt
++
++function start_lttng_sessiond_opt()
++{
++	local withtap=$1
++	local load_path=$2
++
++	local env_vars=""
++	local consumerd=""
++	local long_bit_value=$(getconf LONG_BIT)
++
++	if [ -n $TEST_NO_SESSIOND ] && [ "$TEST_NO_SESSIOND" == "1" ]; then
++		# Env variable requested no session daemon
++		return
++	fi
++
++	DIR=$(readlink -f $TESTDIR)
++
++	# Get long_bit value for 32/64 consumerd
++	case "$long_bit_value" in
++		32)
++			consumerd="--consumerd32-path=$DIR/../src/bin/lttng-consumerd/lttng-consumerd"
++			;;
++		64)
++			consumerd="--consumerd64-path=$DIR/../src/bin/lttng-consumerd/lttng-consumerd"
++			;;
++		*)
++			return
++			;;
++	esac
++
++	# Check for env. variable. Allow the use of LD_PRELOAD etc.
++	if [[ "x${LTTNG_SESSIOND_ENV_VARS}" != "x" ]]; then
++		env_vars=${LTTNG_SESSIOND_ENV_VARS}
++	fi
++
++	validate_kernel_version
++	if [ $? -ne 0 ]; then
++	    fail "Start session daemon"
++	    BAIL_OUT "*** Kernel too old for session daemon tests ***"
++	fi
++	: ${LTTNG_SESSION_CONFIG_XSD_PATH=${DIR}/../src/common/config/}
++	export LTTNG_SESSION_CONFIG_XSD_PATH
++
++	if [ -z $(pgrep ${SESSIOND_MATCH}) ]; then
++		# Have a load path ?
++		if [ -n "$load_path" ]; then
++			env $env_vars $DIR/../src/bin/lttng-sessiond/$SESSIOND_BIN --load "$load_path" --background $consumerd
++		else
++			env $env_vars $DIR/../src/bin/lttng-sessiond/$SESSIOND_BIN --background $consumerd
++		fi
++		$DIR/../src/bin/lttng-sessiond/$SESSIOND_BIN --background --consumerd32-path="$DIR32/../../../../src/bin/lttng-consumerd/lttng-consumerd" --consumerd64-path="$DIR/../src/bin/lttng-consumerd/lttng-consumerd" --verbose-consumer  >> /tmp/sessiond.log 2>&1 &
++		status=$?
++		if [ $withtap -eq "1" ]; then
++			ok $status "Start session daemon"
++		fi
++	fi
++	SESSIOND_PIDS=$(pgrep $SESSIOND_MATCH)
++}
++
++if [ ! -x "$CURDIR/gen-nevents" ]; then
++	BAIL_OUT "No UST nevents binary detected."
++fi
++
++if [ ! -x "$DIR32/gen-nevents" ]; then
++	BAIL_OUT "No UST nevents 32-bit binary detected."
++fi
++
++# MUST set TESTDIR before calling those functions
++
++test_multi_session() {
++	local out
++
++	# BEFORE application is spawned
++	for i in `seq 0 1`; do
++		create_lttng_session_ok "$SESSION_NAME-$i" "$TRACE_PATH/$i"
++		enable_ust_lttng_event_ok "$SESSION_NAME-$i" "$EVENT_NAME$i"
++		start_lttng_tracing_ok "$SESSION_NAME-$i"
++	done
++
++	$CURDIR/gen-nevents $NR_ITER &
++	ok $? "Start application to generate $NR_ITER events"
++
++	wait
++	pass "Wait for events to record"
++
++	for i in `seq 0 1`; do
++		stop_lttng_tracing_ok "$SESSION_NAME-$i"
++		destroy_lttng_session_ok "$SESSION_NAME-$i"
++		out=$(babeltrace "$TRACE_PATH/$i" | grep "$EVENT_NAMEi$i" | wc -l)
++		if [ $out -ne $NR_ITER ]; then
++			fail "Trace validation of $SESSION_NAME-$i"
++			diag "No events found."
++			out=1
++			break
++		else
++			pass "Trace validation of $SESSION_NAME-$i"
++			diag "Found $out event(s) for $SESSION_NAME-$i."
++			out=0
++		fi
++	done
++
++	return $out
++}
++
++test_multi32_session() {
++	local out
++
++	# BEFORE application is spawned
++	for i in `seq 0 1`; do
++		create_lttng_session_ok "$SESSION_NAME-$i" "$TRACE_PATH/$i"
++		enable_ust_lttng_event_ok "$SESSION_NAME-$i" "$EVENT_NAME$i"
++		start_lttng_tracing_ok "$SESSION_NAME-$i"
++	done
++
++	$DIR32/gen-nevents $NR_ITER &
++	ok $? "Start 32-bit application to generate $NR_ITER events"
++
++	wait
++	pass "Wait for events to record"
++
++	for i in `seq 0 1`; do
++		stop_lttng_tracing_ok "$SESSION_NAME-$i"
++		destroy_lttng_session_ok "$SESSION_NAME-$i"
++		out=$(babeltrace "$TRACE_PATH/$i" | grep "$EVENT_NAMEi$i" | wc -l)
++		if [ $out -ne $NR_ITER ]; then
++			fail "Trace validation of $SESSION_NAME-$i"
++			diag "No events found."
++			out=1
++			break
++		else
++			pass "Trace validation of $SESSION_NAME-$i"
++			diag "Found $out event(s) for $SESSION_NAME-$i."
++			out=0
++		fi
++	done
++
++	return $out
++}
++# MUST set TESTDIR before calling those functions
++
++plan_tests $NUM_TESTS
++
++print_test_banner "$TEST_DESC"
++
++start_lttng_sessiond
++
++TRACE_PATH=$(mktemp -d)
++
++test_multi_session
++test_multi32_session
++out=$?
++if [ $out -ne 0 ]; then
++	stop_lttng_sessiond
++	exit $out
++fi
++
++stop_lttng_sessiond
++
++rm -rf "$TRACE_PATH"
+diff --git a/tests/regression/ust/multilib-session/tp.c b/tests/regression/ust/multilib-session/tp.c
+new file mode 100644
+index 00000000..c90b996d
+--- /dev/null
++++ b/tests/regression/ust/multilib-session/tp.c
+@@ -0,0 +1,17 @@
++/*
++ * Copyright (c) - 2011 Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
++ * Copyright (c) - 2012 David Goulet <dgoulet@efficios.com>
++ *
++ * THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY EXPRESSED OR
++ * IMPLIED. ANY USE IS AT YOUR OWN RISK.
++ *
++ * Permission is hereby granted to use or copy this program for any purpose,
++ * provided the above notices are retained on all copies.  Permission to modify
++ * the code and to distribute modified code is granted, provided the above
++ * notices are retained, and a notice that the code was modified is included
++ * with the above copyright notice.
++ */
++
++#define _LGPL_SOURCE
++#define TRACEPOINT_CREATE_PROBES
++#include "ust_gen_nevents.h"
+diff --git a/tests/regression/ust/multilib-session/ust_gen_nevents.h b/tests/regression/ust/multilib-session/ust_gen_nevents.h
+new file mode 100644
+index 00000000..7a1c7287
+--- /dev/null
++++ b/tests/regression/ust/multilib-session/ust_gen_nevents.h
+@@ -0,0 +1,60 @@
++#undef TRACEPOINT_PROVIDER
++#define TRACEPOINT_PROVIDER ust_gen_nevents
++
++#if !defined(_TRACEPOINT_UST_GEN_NEVENTS_H) || defined(TRACEPOINT_HEADER_MULTI_READ)
++#define _TRACEPOINT_UST_GEN_NEVENTS_H
++
++/*
++ * Copyright (C) 2011  Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
++ *
++ * THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY EXPRESSED
++ * OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
++ *
++ * Permission is hereby granted to use or copy this program
++ * for any purpose,  provided the above notices are retained on all copies.
++ * Permission to modify the code and to distribute modified code is granted,
++ * provided the above notices are retained, and a notice that the code was
++ * modified is included with the above copyright notice.
++ */
++
++#include <lttng/tracepoint.h>
++
++TRACEPOINT_EVENT(ust_gen_nevents, tptest0,
++	TP_ARGS(int, anint, long, value),
++	TP_FIELDS(
++		ctf_integer(int, intfield, anint)
++		ctf_integer(long, longfield, value)
++	)
++)
++
++TRACEPOINT_EVENT(ust_gen_nevents, tptest1,
++	TP_ARGS(int, anint, long, value),
++	TP_FIELDS(
++		ctf_integer(int, intfield, anint)
++		ctf_integer(long, longfield, value)
++	)
++)
++
++TRACEPOINT_EVENT(ust_gen_nevents, tptest2,
++	TP_ARGS(int, anint, long, value),
++	TP_FIELDS(
++		ctf_integer(int, intfield, anint)
++		ctf_integer(long, longfield, value)
++	)
++)
++
++TRACEPOINT_EVENT(ust_gen_nevents, tptest3,
++	TP_ARGS(int, anint, long, value),
++	TP_FIELDS(
++		ctf_integer(int, intfield, anint)
++		ctf_integer(long, longfield, value)
++	)
++)
++
++#endif /* _TRACEPOINT_UST_GEN_NEVENTS_H */
++
++#undef TRACEPOINT_INCLUDE_FILE
++#define TRACEPOINT_INCLUDE_FILE ./ust_gen_nevents.h
++
++/* This part must be outside ifdef protection */
++#include <lttng/tracepoint-event.h>
+-- 
+2.21.0
+

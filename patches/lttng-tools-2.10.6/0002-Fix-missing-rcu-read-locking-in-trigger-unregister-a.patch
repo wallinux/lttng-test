@@ -1,0 +1,47 @@
+From 6bfc8da05c035890b24a6563647ad35afeee0ed8 Mon Sep 17 00:00:00 2001
+Message-Id: <6bfc8da05c035890b24a6563647ad35afeee0ed8.1549011213.git.wallinux@gmail.com>
+In-Reply-To: <0fe4c3bf415eef3325b53383cbc3bc087db55d7f.1549011212.git.wallinux@gmail.com>
+References: <0fe4c3bf415eef3325b53383cbc3bc087db55d7f.1549011212.git.wallinux@gmail.com>
+From: =?UTF-8?q?J=C3=A9r=C3=A9mie=20Galarneau?=
+ <jeremie.galarneau@efficios.com>
+Date: Wed, 23 Jan 2019 15:29:14 -0500
+Subject: [PATCH 2/2] Fix: missing rcu read locking in trigger "unregister all"
+ command
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+While the notification subsystem all runs within a single thread,
+the iteration over the triggers hash table must be protected using
+the RCU read-side lock since the RCU worker may resize the hash
+table while the iteration is performed.
+
+Signed-off-by: Jérémie Galarneau <jeremie.galarneau@efficios.com>
+Signed-off-by: Anders Wallin <wallinux@gmail.com>
+---
+ src/bin/lttng-sessiond/notification-thread-events.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/bin/lttng-sessiond/notification-thread-events.c b/src/bin/lttng-sessiond/notification-thread-events.c
+index 4799c718..81acd723 100644
+--- a/src/bin/lttng-sessiond/notification-thread-events.c
++++ b/src/bin/lttng-sessiond/notification-thread-events.c
+@@ -1572,6 +1572,7 @@ int handle_notification_thread_trigger_unregister_all(
+ 	struct cds_lfht_iter iter;
+ 	struct lttng_trigger_ht_element *trigger_ht_element;
+ 
++	rcu_read_lock();
+ 	cds_lfht_for_each_entry(state->triggers_ht, &iter, trigger_ht_element,
+ 			node) {
+ 		int ret = handle_notification_thread_command_unregister_trigger(
+@@ -1580,6 +1581,7 @@ int handle_notification_thread_trigger_unregister_all(
+ 			error_occurred = true;
+ 		}
+ 	}
++	rcu_read_unlock();
+ 	return error_occurred ? -1 : 0;
+ }
+ 
+-- 
+2.20.1
+

@@ -63,7 +63,8 @@ define rcs-patch
 	echo -e "\nPatching $(1)"; \
 	cd $(1); \
 	git reset --hard $(2) >/dev/null; \
-	for file in $$(cat $(TOP)/patches/$(1)/patches); do \
+	for file in $$(grep -v "^#" $(TOP)/patches/$(1)/patches | grep . ); do \
+		echo -e "\n --- $$file ---"; \
 		git am -3 $(TOP)/patches/$(1)/$$file; \
 	done; \
 	git tag -f v_rcs >/dev/null;
@@ -115,9 +116,9 @@ repo.bls:
 		popd >/dev/null; \
 	)
 
-LIBURCU_VER=v0.9.5
-LTTNGUST_VER=v2.10.2
-LTTNGTOOLS_VER=v2.10.5
+LIBURCU_VER=v0.9.6
+LTTNGUST_VER=v2.10.4
+LTTNGTOOLS_VER=v2.10.7
 BABELTRACE_VER=v1.5.6
 
 rcs.checkout:

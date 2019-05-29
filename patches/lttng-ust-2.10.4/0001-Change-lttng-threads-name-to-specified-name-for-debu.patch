@@ -1,0 +1,42 @@
+From 3db31d99d60598a365385a57ba1e03212d565df3 Mon Sep 17 00:00:00 2001
+Message-Id: <3db31d99d60598a365385a57ba1e03212d565df3.1559030021.git.anders.wallin@windriver.com>
+From: Liguang Li <liguang.li@windriver.com>
+Date: Mon, 29 Aug 2016 15:02:48 +0800
+Subject: [PATCH] Change lttng threads name to specified name for debug
+
+Issue: LINCCM-796
+
+Signed-off-by: Liguang Li <liguang.li@windriver.com>
+---
+ liblttng-ust/lttng-ust-comm.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/liblttng-ust/lttng-ust-comm.c b/liblttng-ust/lttng-ust-comm.c
+index faea043d..a118e170 100644
+--- a/liblttng-ust/lttng-ust-comm.c
++++ b/liblttng-ust/lttng-ust-comm.c
+@@ -1802,6 +1802,10 @@ void __attribute__((constructor)) lttng_ust_init(void)
+ 		if (ret) {
+ 			ERR("pthread_create global: %s", strerror(ret));
+ 		}
++		ret = pthread_setname_np(global_apps.ust_listener, "lttng_gl_lstnr");
++		if (ret) {
++			ERR("pthread_setname_np global: %s", strerror(ret));
++		}
+ 		global_apps.thread_active = 1;
+ 		pthread_mutex_unlock(&ust_exit_mutex);
+ 	} else {
+@@ -1815,6 +1819,10 @@ void __attribute__((constructor)) lttng_ust_init(void)
+ 		if (ret) {
+ 			ERR("pthread_create local: %s", strerror(ret));
+ 		}
++		ret = pthread_setname_np(local_apps.ust_listener, "lttng_lc_lstnr");
++		if (ret) {
++			ERR("pthread_setname_np local: %s", strerror(ret));
++		}
+ 		local_apps.thread_active = 1;
+ 		pthread_mutex_unlock(&ust_exit_mutex);
+ 	} else {
+-- 
+2.21.0
+

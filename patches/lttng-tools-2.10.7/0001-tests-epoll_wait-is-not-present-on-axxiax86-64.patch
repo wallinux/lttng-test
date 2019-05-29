@@ -1,0 +1,50 @@
+From 4c2e0835f02796e2c41d706def9fa9d1e7585636 Mon Sep 17 00:00:00 2001
+From: Beniamin Sandu <Beniamin.Sandu@windriver.com>
+Date: Thu, 6 Dec 2018 08:09:32 +0000
+Subject: [PATCH] tests: epoll_wait is not present on axxiax86-64
+
+Signed-off-by: Beniamin Sandu <Beniamin.Sandu@windriver.com>
+---
+ tests/regression/kernel/test_select_poll_epoll | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/tests/regression/kernel/test_select_poll_epoll b/tests/regression/kernel/test_select_poll_epoll
+index 7f0a5e68..f046e5d7 100755
+--- a/tests/regression/kernel/test_select_poll_epoll
++++ b/tests/regression/kernel/test_select_poll_epoll
+@@ -20,7 +20,9 @@ TEST_DESC="Kernel tracer - select, poll and epoll payload extraction"
+ CURDIR=$(dirname $0)/
+ TESTDIR=$CURDIR/../..
+ VALIDATE_SCRIPT="$CURDIR/validate_select_poll_epoll.py"
+-uname -m | grep -E "aarch64" >/dev/null 2>&1
++
++# aarch64 and axxiax86-64 don't have epoll_wait
++uname -m | grep -E "aarch64" || hostname | grep -E "axxiax86-64" >/dev/null 2>&1
+ if test $? = 0; then
+     NUM_TESTS=100
+ else
+@@ -70,8 +72,8 @@ function test_working_cases()
+ 	TRACE_PATH=$(mktemp -d)
+ 	SESSION_NAME="syscall_payload"
+ 
+-	# arm64 does not have epoll_wait
+-	uname -m | grep -E "aarch64" >/dev/null 2>&1
++	# aarch64 and axxiax86-64 don't have epoll_wait
++	uname -m | grep -E "aarch64" || hostname | grep -E "axxiax86-64" >/dev/null 2>&1
+ 	if test $? = 0; then
+ 		SYSCALL_LIST="select,pselect6,poll,ppoll,epoll_ctl,epoll_pwait"
+ 	else
+@@ -103,8 +105,8 @@ function test_timeout_cases()
+ 	TRACE_PATH=$(mktemp -d)
+ 	SESSION_NAME="syscall_payload"
+ 
+-	# arm64 does not have epoll_wait
+-	uname -m | grep -E "aarch64" >/dev/null 2>&1
++	# aarch64 and axxiax86-64 don't have epoll_wait
++	uname -m | grep -E "aarch64" || hostname | grep -E "axxiax86-64" >/dev/null 2>&1
+ 	if test $? = 0; then
+ 		SYSCALL_LIST="select,pselect6,poll,ppoll,epoll_ctl,epoll_pwait"
+ 	else
+-- 
+2.13.3
+

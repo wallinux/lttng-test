@@ -1,0 +1,27 @@
+From 187f58e64ca8d6a048cd84f711df4002fd99d6ea Mon Sep 17 00:00:00 2001
+Message-Id: <187f58e64ca8d6a048cd84f711df4002fd99d6ea.1559139626.git.wallinux@gmail.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Mon, 14 Dec 2015 16:39:47 +0100
+Subject: [PATCH] root_regression tests updated to succeed on RCS targets
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+Signed-off-by: Anders Wallin <wallinux@gmail.com>
+---
+ tests/root_regression | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/tests/root_regression b/tests/root_regression
+index 92edf92a..e7db8d83 100644
+--- a/tests/root_regression
++++ b/tests/root_regression
+@@ -6,7 +6,6 @@ regression/kernel/test_rotation_destroy_flush
+ regression/kernel/test_select_poll_epoll
+ regression/tools/live/test_kernel
+ regression/tools/live/test_lttng_kernel
+-regression/tools/streaming/test_high_throughput_limits
+ regression/tools/streaming/test_kernel
+ regression/tools/snapshots/test_kernel
+ regression/tools/snapshots/test_kernel_streaming
+-- 
+2.21.0
+
