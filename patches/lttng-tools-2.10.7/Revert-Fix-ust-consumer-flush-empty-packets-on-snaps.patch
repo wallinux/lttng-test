@@ -1,9 +1,9 @@
-From 3b717f0b38901c8ff6bcb9c4d9924c89fbb7491a Mon Sep 17 00:00:00 2001
-Message-Id: <3b717f0b38901c8ff6bcb9c4d9924c89fbb7491a.1481877275.git.anders.wallin@windriver.com>
+From cf50603c4cf34771f0405c17a8a257a78a13a6c1 Mon Sep 17 00:00:00 2001
+Message-Id: <cf50603c4cf34771f0405c17a8a257a78a13a6c1.1559719896.git.wallinux@gmail.com>
 From: Anders Wallin <anders.wallin@windriver.com>
 Date: Fri, 16 Dec 2016 08:34:23 +0000
-Subject: [PATCH 1/1] Revert "Fix: ust-consumer: flush empty packets on
- snapshot channel"
+Subject: [PATCH] Revert "Fix: ust-consumer: flush empty packets on snapshot
+ channel"
 
 This reverts commit 964f17f3183d74713de9075d3144c9a76f9e1076.
 
@@ -13,11 +13,11 @@ Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
  1 file changed, 1 insertion(+), 7 deletions(-)
 
 diff --git a/src/common/ust-consumer/ust-consumer.c b/src/common/ust-consumer/ust-consumer.c
-index 01d5ecf..678d528 100644
+index e30b7651..72d4851b 100644
 --- a/src/common/ust-consumer/ust-consumer.c
 +++ b/src/common/ust-consumer/ust-consumer.c
-@@ -1111,13 +1111,7 @@ static int snapshot_channel(uint64_t key, char *path, uint64_t relayd_id,
- 			}
+@@ -1138,13 +1138,7 @@ static int snapshot_channel(uint64_t key, char *path, uint64_t relayd_id,
+ 					stream->name, stream->key);
  		}
  
 -		/*
@@ -32,5 +32,5 @@ index 01d5ecf..678d528 100644
  		ret = lttng_ustconsumer_take_snapshot(stream);
  		if (ret < 0) {
 -- 
-2.5.0
+2.21.0
 

@@ -9,11 +9,11 @@ Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
 0001-Use-platform-independant-types-in-sessiond-to-consum.patch
 Added-support-for-BFN-clock.patch
 Added-BFN-tests.patch
+0001-tests-use-openat-syscall-on-axxiax86-64.patch
 
 # axxiaarm64
-#Removing-failing-aarch64-syscall-tests.patch
+Removing-failing-aarch64-syscall-tests.patch
 
 # axxiax86-64
 #0001-tests-epoll_wait-is-not-present-on-axxiax86-64.patch
-#0001-tests-use-openat-syscall-on-axxiax86-64.patch
 #0001-Tests-add-missing-multilib-tracing-test.patch
