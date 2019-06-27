@@ -43,9 +43,11 @@ CONF_OPTION_lttng-ust 		?= $(CONF_PREFIX) --disable-man-pages
 CONF_OPTION_lttng-tools 	?= $(CONF_PREFIX) --with-lttng-ust --enable-manpages --enable-embedded-help
 CONF_OPTION_babeltrace 		?= $(CONF_PREFIX)
 
+BUILDDIR	= $(TOP)/build
+
 define create-builddir
-	$(foreach repo,$(REPOS), mkdir -p out/$(1)/$(repo); \
-				  ln -sfn $(1)/$(repo) out/$(repo); )
+	$(foreach repo,$(REPOS), mkdir -p $(BUILDDIR)/$(1)/$(repo); \
+				  ln -sfn $(1)/$(repo) $(BUILDDIR)/$(repo); )
 endef
 
 define run-create
@@ -202,32 +204,32 @@ master.checkout:
 configure.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(Q)cd out/$*; $(TOP)/$*/$(target) $(CONF_OPTION_$*)
+	$(Q)cd $(BUILDDIR)/$*; $(TOP)/$*/$(target) $(CONF_OPTION_$*)
 
 all.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
 	$(MAKE) configure.$*
-	$(MAKE) -C out/$* $(target)
+	$(MAKE) -C $(BUILDDIR)/$* $(target)
 
 install.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
 	$(MAKE) all.$*
-	$(SUDOMAKE) -C out/$* $(target)
+	$(SUDOMAKE) -C $(BUILDDIR)/$* $(target)
 
 uninstall.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(SUDOMAKE) -C out/$* $(target)
+	$(SUDOMAKE) -C $(BUILDDIR)/$* $(target)
 
 distclean.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(Q)if [ -e out/$*/Makefile ]; then \
+	$(Q)if [ -e $(BUILDDIR)/$*/Makefile ]; then \
 		make uninstall.$*; \
-		make -C out/$* $(target); \
-		rm -rf out/$*/*; \
+		make -C $(BUILDDIR)/$* $(target); \
+		rm -rf $(BUILDDIR)/$*/*; \
 	else \
 		echo $(target) not configured; \
 	fi
@@ -235,8 +237,8 @@ distclean.%:
 clean.% TAGS.% CTAGS.% distclean-tags.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(Q)if [ -e out/$*/Makefile ]; then \
-		make -C out/$* $(target); \
+	$(Q)if [ -e $(BUILDDIR)/$*/Makefile ]; then \
+		make -C $(BUILDDIR)/$* $(target); \
 	else \
 		echo $(target) not configured; \
 	fi
@@ -244,7 +246,7 @@ clean.% TAGS.% CTAGS.% distclean-tags.%:
 DISTCLEAN.%:
 	$(TRACE)
 	$(RM) -r $*
-	$(RM) -r out
+	$(RM) -r $(BUILDDIR)
 
 all configure install distclean uninstall clean TAGS CTAGS DISTCLEAN distclean-tags:
 	$(TRACE)
