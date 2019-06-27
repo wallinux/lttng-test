@@ -218,6 +218,10 @@ install.%:
 	$(MAKE) all.$*
 	$(SUDOMAKE) -C $(BUILDDIR)/$* $(target)
 
+test.lttng_tools:
+	$(TRACE)
+	$(Q)cd $(BUILDDIR)/lttng-tools/tests/; ./run.sh fast_regression; ./run.sh root_regression;
+
 uninstall.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
