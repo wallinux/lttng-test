@@ -33,7 +33,7 @@ REPO_babeltrace    = http://git.linuxfoundation.org/diamon/babeltrace.git
 REPO_lttngtop	   = git://git.lttng.org/lttngtop.git
 REPO_lttng-modules = git://git.lttng.org/lttng-modules.git/
 
-#EXTRA_REPOS	?= lttngtop lttng-modules
+#EXTRA_REPOS	?= lttng-modules
 EXTRA_REPOS	?=
 REPOS		= userspace-rcu lttng-ust lttng-tools babeltrace $(EXTRA_REPOS)
 
@@ -188,7 +188,7 @@ stable-2.11.checkout:
 	$(Q)$(call run-create,userspace-rcu,origin/stable-0.11,stable-0.11 )
 	$(Q)$(call run-create,lttng-ust,origin/stable-2.11,stable-2.11 )
 	$(Q)$(call run-create,lttng-tools,origin/stable-2.11,stable-2.11 )
-	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
+	$(Q)$(call run-create,babeltrace,origin/stable-2.0,stable-2.0 )
 	$(MAKE) repo.pull repo.bls
 	$(Q)$(call create-builddir,stable-2.11)
 
