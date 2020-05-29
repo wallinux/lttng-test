@@ -29,7 +29,7 @@ MKSTAMP = $(Q)mkdir -p $(STAMPDIR) ; touch $(STAMPDIR)/$@
 REPO_userspace-rcu = git://git.liburcu.org/userspace-rcu.git
 REPO_lttng-ust     = git://git.lttng.org/lttng-ust.git
 REPO_lttng-tools   = git://git.lttng.org/lttng-tools.git
-REPO_babeltrace    = http://git.linuxfoundation.org/diamon/babeltrace.git
+REPO_babeltrace    = https://git.efficios.com/babeltrace.git
 REPO_lttngtop	   = git://git.lttng.org/lttngtop.git
 REPO_lttng-modules = git://git.lttng.org/lttng-modules.git/
 
@@ -211,6 +211,9 @@ all.%:
 	$(eval target=$(subst .$*,,$@))
 	$(MAKE) configure.$*
 	$(MAKE) -C $(BUILDDIR)/$* $(target)
+
+update: repo.pull
+	$(TRACE)
 
 install.%:
 	$(TRACE)
