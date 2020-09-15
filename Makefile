@@ -224,7 +224,8 @@ install.%:
 
 test.lttng_tools:
 	$(TRACE)
-	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh fast_regression; ./run.sh root_regression;
+	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh fast_regression;
+	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh root_regression;
 
 uninstall.%:
 	$(TRACE)
