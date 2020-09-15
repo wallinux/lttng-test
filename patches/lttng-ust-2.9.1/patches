@@ -1,5 +1,0 @@
-lttng-ust-doc-examples-disable.patch
-Remove-weak-attribute-on-hidden-symbols.patch
-Added-ARM-and-AARCH64-cntpct-clock-plugin.patch
-adding-debug-information-when-using-custom-clock.patch
-0001-Change-lttng-threads-name-to-specified-name-for-debu.patch
