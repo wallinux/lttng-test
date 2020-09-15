@@ -8,6 +8,7 @@ ifneq ($(V),1)
 Q=@
 endif
 
+CD	= $(Q)cd
 RM	= $(Q)rm -f
 MAKE	= $(Q)make
 MKDIR	= $(Q)mkdir -p
@@ -204,7 +205,7 @@ master.checkout:
 configure.%:
 	$(TRACE)
 	$(eval target=$(subst .$*,,$@))
-	$(Q)cd $(BUILDDIR)/$*; $(TOP)/$*/$(target) $(CONF_OPTION_$*)
+	$(CD) $(BUILDDIR)/$*; $(TOP)/$*/$(target) $(CONF_OPTION_$*)
 
 all.%:
 	$(TRACE)
@@ -223,7 +224,7 @@ install.%:
 
 test.lttng_tools:
 	$(TRACE)
-	$(Q)cd $(BUILDDIR)/lttng-tools/tests/; ./run.sh fast_regression; ./run.sh root_regression;
+	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh fast_regression; ./run.sh root_regression;
 
 uninstall.%:
 	$(TRACE)
