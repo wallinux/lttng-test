@@ -222,10 +222,11 @@ install.%:
 	$(MAKE) all.$*
 	$(SUDOMAKE) -C $(BUILDDIR)/$* $(target)
 
-test.lttng_tools:
+fast_regression.lttng-tools root_regression.lttng-tools:
 	$(TRACE)
-	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh fast_regression;
-	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh root_regression;
+	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh $@;
+
+test.lttng-tools: fast_regression.lttng-tools root_regression.lttng-tools
 
 uninstall.%:
 	$(TRACE)
