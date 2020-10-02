@@ -1,0 +1,32 @@
+From 9a571be4c38dc4cc6cd27cd2d45129b363f3d748 Mon Sep 17 00:00:00 2001
+Message-Id: <9a571be4c38dc4cc6cd27cd2d45129b363f3d748.1601303718.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Mon, 23 Oct 2017 08:03:41 +0200
+Subject: [PATCH] tests: epoll_wait missing in aarch64
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ tests/regression/kernel/test_select_poll_epoll | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/tests/regression/kernel/test_select_poll_epoll b/tests/regression/kernel/test_select_poll_epoll
+index 2aa4d6fe..3bed9cda 100755
+--- a/tests/regression/kernel/test_select_poll_epoll
++++ b/tests/regression/kernel/test_select_poll_epoll
+@@ -10,7 +10,12 @@ TEST_DESC="Kernel tracer - select, poll and epoll payload extraction"
+ CURDIR=$(dirname $0)/
+ TESTDIR=$CURDIR/../..
+ VALIDATE_SCRIPT="$CURDIR/validate_select_poll_epoll.py"
+-NUM_TESTS=102
++uname -m | grep -E "aarch64" >/dev/null 2>&1
++if test $? = 0; then
++    NUM_TESTS=100
++else
++    NUM_TESTS=102
++fi
+ 
+ # Only run this test on x86 and arm
+ uname -m | grep -E "x86|i686|arm|aarch64" >/dev/null 2>&1
+-- 
+2.28.0
+
