@@ -15,5 +15,5 @@ Added-BFN-tests.patch
 Removing-failing-aarch64-syscall-tests.patch
 
 # axxiax86-64
-#0001-tests-epoll_wait-is-not-present-on-axxiax86-64.patch
-#0001-Tests-add-missing-multilib-tracing-test.patch
+0001-tests-epoll_wait-is-not-present-on-axxiax86-64.patch
+0001-Tests-add-missing-multilib-tracing-test.patch
