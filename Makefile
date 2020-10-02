@@ -63,14 +63,15 @@ define run-create
 endef
 
 define rcs-patch
-	echo -e "\nPatching $(1)"; \
+	$(eval pkg=$(1)-$(subst v,,$(2)))
+	$(Q)echo -e "\nPatching $(1), $(pkg)"; \
 	cd $(1); \
 	git reset --hard $(2) >/dev/null; \
-	for file in $$(grep -v "^#" $(TOP)/patches/$(1)/patches | grep . ); do \
+	for file in $$(grep -v "^#" $(TOP)/patches/$(pkg)/patches | grep . ); do \
 		echo -e "\n --- $$file ---"; \
-		git am -3 $(TOP)/patches/$(1)/$$file; \
+		git am -3 $(TOP)/patches/$(pkg)/$$file > /dev/null; \
 	done; \
-	git tag -f v_rcs >/dev/null;
+	git tag -f v_$(3) >/dev/null;
 endef
 
 help:
@@ -119,25 +120,25 @@ repo.bls:
 		popd >/dev/null; \
 	)
 
-LIBURCU_VER=v0.9.7
-LTTNGUST_VER=v2.10.7
-LTTNGTOOLS_VER=v2.10.11
-BABELTRACE_VER=v1.5.8
+RCS_LIBURCU_VER=v0.9.7
+RCS_LTTNGUST_VER=v2.10.7
+RCS_LTTNGTOOLS_VER=v2.10.11
+RCS_BABELTRACE_VER=v1.5.8
 
 rcs.checkout:
 	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,$(LIBURCU_VER),rcs )
-	$(Q)$(call run-create,lttng-ust,$(LTTNGUST_VER),rcs )
-	$(Q)$(call run-create,lttng-tools,$(LTTNGTOOLS_VER),rcs )
-	$(Q)$(call run-create,babeltrace,$(BABELTRACE_VER),rcs )
+	$(Q)$(call run-create,userspace-rcu,$(RCS_LIBURCU_VER),rcs )
+	$(Q)$(call run-create,lttng-ust,$(RCS_LTTNGUST_VER),rcs )
+	$(Q)$(call run-create,lttng-tools,$(RCS_LTTNGTOOLS_VER),rcs )
+	$(Q)$(call run-create,babeltrace,$(RCS_BABELTRACE_VER),rcs )
 	$(Q)$(call create-builddir,rcs)
 
 rcs.patch: rcs.checkout
 	$(TRACE)
-	$(Q)$(call rcs-patch,userspace-rcu,$(LIBURCU_VER),rcs )
-	$(Q)$(call rcs-patch,lttng-ust,$(LTTNGUST_VER),rcs )
-	$(Q)$(call rcs-patch,lttng-tools,$(LTTNGTOOLS_VER),rcs )
-	$(Q)$(call rcs-patch,babeltrace,$(BABELTRACE_VER),rcs )
+	$(Q)$(call rcs-patch,userspace-rcu,$(RCS_LIBURCU_VER),rcs )
+	$(Q)$(call rcs-patch,lttng-ust,$(RCS_LTTNGUST_VER),rcs )
+	$(Q)$(call rcs-patch,lttng-tools,$(RCS_LTTNGTOOLS_VER),rcs )
+	$(Q)$(call rcs-patch,babeltrace,$(RCS_BABELTRACE_VER),rcs )
 
 rcs.clean:
 	$(TRACE)
@@ -145,6 +146,35 @@ rcs.clean:
 		cd $(repo); \
 		git checkout master; \
 		git branch -D rcs; \
+		cd ..; \
+	)
+
+RCS12_LIBURCU_VER=v0.12.1
+RCS12_LTTNGUST_VER=v2.12.0
+RCS12_LTTNGTOOLS_VER=v2.12.2
+RCS12_BABELTRACE_VER=v2.0.3
+
+rcs12.checkout:
+	$(TRACE)
+	$(Q)$(call run-create,userspace-rcu,$(RCS12_LIBURCU_VER),rcs12 )
+	$(Q)$(call run-create,lttng-ust,$(RCS12_LTTNGUST_VER),rcs12 )
+	$(Q)$(call run-create,lttng-tools,$(RCS12_LTTNGTOOLS_VER),rcs12 )
+	$(Q)$(call run-create,babeltrace,$(RCS12_BABELTRACE_VER),rcs12 )
+	$(Q)$(call create-builddir,rcs12)
+
+rcs12.patch: rcs12.checkout
+	$(TRACE)
+	$(Q)$(call rcs-patch,userspace-rcu,$(RCS12_LIBURCU_VER),rcs12 )
+	$(Q)$(call rcs-patch,lttng-ust,$(RCS12_LTTNGUST_VER),rcs12 )
+	$(Q)$(call rcs-patch,lttng-tools,$(RCS12_LTTNGTOOLS_VER),rcs12 )
+	$(Q)$(call rcs-patch,babeltrace,$(RCS12_BABELTRACE_VER),rcs12 )
+
+rcs12.clean:
+	$(TRACE)
+	$(Q)$(foreach repo, $(REPOS), \
+		cd $(repo); \
+		git checkout master; \
+		git branch -D rcs12; \
 		cd ..; \
 	)
 
