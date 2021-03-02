@@ -22,6 +22,7 @@ SUDOMAKE= $(Q)sudo make
 else
 SUDOMAKE= $(MAKE)
 endif
+PATCH	= $(Q)$(TOP)/patch-lttng
 
 STAMPDIR = $(TOP)/.stamps
 vpath % $(STAMPDIR)
@@ -35,8 +36,11 @@ REPO_lttngtop	   = git://git.lttng.org/lttngtop.git
 REPO_lttng-modules = git://git.lttng.org/lttng-modules.git/
 
 #EXTRA_REPOS	?= lttng-modules
-EXTRA_REPOS	?=
-REPOS		= userspace-rcu lttng-ust lttng-tools babeltrace $(EXTRA_REPOS)
+REPOS		+= userspace-rcu
+REPOS		+= lttng-ust
+REPOS		+= lttng-tools
+REPOS		+= babeltrace
+REPOS		+= $(EXTRA_REPOS)
 
 CONF_PREFIX			?= --prefix=/usr
 CONF_OPTION_userspace-rcu 	?= $(CONF_PREFIX)
@@ -45,6 +49,8 @@ CONF_OPTION_lttng-tools 	?= $(CONF_PREFIX) --with-lttng-ust --enable-manpages --
 CONF_OPTION_babeltrace 		?= $(CONF_PREFIX)
 
 BUILDDIR	= $(TOP)/build
+
+TARGET=$(eval target=$(subst .$*,,$@))
 
 define create-builddir
 	$(foreach repo,$(REPOS), mkdir -p $(BUILDDIR)/$(1)/$(repo); \
@@ -62,18 +68,6 @@ define run-create
 	./bootstrap
 endef
 
-define rcs-patch
-	$(eval pkg=$(1)-$(subst v,,$(2)))
-	$(Q)echo -e "\nPatching $(1), $(pkg)"; \
-	cd $(1); \
-	git reset --hard $(2) >/dev/null; \
-	for file in $$(grep -v "^#" $(TOP)/patches/$(pkg)/patches | grep . ); do \
-		echo -e "\n --- $$file ---"; \
-		git am -3 $(TOP)/patches/$(pkg)/$$file > /dev/null; \
-	done; \
-	git tag -f v_$(3) >/dev/null;
-endef
-
 help:
 	$(TRACE)
 	$(GREEN)
@@ -82,23 +76,15 @@ help:
 
 repo.clone:
 	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS), git clone $(REPO_$(repo)); )
+	$(Q)$(foreach repo, $(REPOS),git clone $(REPO_$(repo)); )
 
 repo.fetch:
 	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS), \
-		pushd $(repo)>/dev/null; \
-		git fetch --prune; \
-		popd >/dev/null; \
-	)
+	$(Q)$(foreach repo, $(REPOS),git -C $(repo) fetch --prune; )
 
 repo.pull:
 	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS), \
-		pushd $(repo) >/dev/null; \
-		git pull; \
-		popd >/dev/null; \
-	)
+	$(Q)$(foreach repo,$(REPOS),git -C $(repo) pull; )
 
 repo.latest_tag:
 	$(TRACE)
@@ -127,27 +113,18 @@ RCS_BABELTRACE_VER=v1.5.8
 
 rcs.checkout:
 	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,$(RCS_LIBURCU_VER),rcs )
-	$(Q)$(call run-create,lttng-ust,$(RCS_LTTNGUST_VER),rcs )
-	$(Q)$(call run-create,lttng-tools,$(RCS_LTTNGTOOLS_VER),rcs )
-	$(Q)$(call run-create,babeltrace,$(RCS_BABELTRACE_VER),rcs )
+	$(Q)$(call run-create,userspace-rcu,$(RCS_LIBURCU_VER),rcs)
+	$(Q)$(call run-create,lttng-ust,$(RCS_LTTNGUST_VER),rcs)
+	$(Q)$(call run-create,lttng-tools,$(RCS_LTTNGTOOLS_VER),rcs)
+	$(Q)$(call run-create,babeltrace,$(RCS_BABELTRACE_VER),rcs)
 	$(Q)$(call create-builddir,rcs)
 
 rcs.patch: rcs.checkout
 	$(TRACE)
-	$(Q)$(call rcs-patch,userspace-rcu,$(RCS_LIBURCU_VER),rcs )
-	$(Q)$(call rcs-patch,lttng-ust,$(RCS_LTTNGUST_VER),rcs )
-	$(Q)$(call rcs-patch,lttng-tools,$(RCS_LTTNGTOOLS_VER),rcs )
-	$(Q)$(call rcs-patch,babeltrace,$(RCS_BABELTRACE_VER),rcs )
-
-rcs.clean:
-	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS), \
-		cd $(repo); \
-		git checkout master; \
-		git branch -D rcs; \
-		cd ..; \
-	)
+	$(PATCH) userspace-rcu $(RCS_LIBURCU_VER) rcs
+	$(PATCH) lttng-ust $(RCS_LTTNGUST_VER) rcs
+	$(PATCH) lttng-tools $(RCS_LTTNGTOOLS_VER) rcs 
+	$(PATCH) babeltrace $(RCS_BABELTRACE_VER) rcs 
 
 RCS12_LIBURCU_VER=v0.12.1
 RCS12_LTTNGUST_VER=v2.12.0
@@ -156,54 +133,40 @@ RCS12_BABELTRACE_VER=v2.0.3
 
 rcs12.checkout:
 	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,$(RCS12_LIBURCU_VER),rcs12 )
-	$(Q)$(call run-create,lttng-ust,$(RCS12_LTTNGUST_VER),rcs12 )
-	$(Q)$(call run-create,lttng-tools,$(RCS12_LTTNGTOOLS_VER),rcs12 )
-	$(Q)$(call run-create,babeltrace,$(RCS12_BABELTRACE_VER),rcs12 )
+	$(Q)$(call run-create,userspace-rcu,$(RCS12_LIBURCU_VER),rcs12)
+	$(Q)$(call run-create,lttng-ust,$(RCS12_LTTNGUST_VER),rcs12)
+	$(Q)$(call run-create,lttng-tools,$(RCS12_LTTNGTOOLS_VER),rcs12)
+	$(Q)$(call run-create,babeltrace,$(RCS12_BABELTRACE_VER),rcs12)
 	$(Q)$(call create-builddir,rcs12)
 
 rcs12.patch: rcs12.checkout
 	$(TRACE)
-	$(Q)$(call rcs-patch,userspace-rcu,$(RCS12_LIBURCU_VER),rcs12 )
-	$(Q)$(call rcs-patch,lttng-ust,$(RCS12_LTTNGUST_VER),rcs12 )
-	$(Q)$(call rcs-patch,lttng-tools,$(RCS12_LTTNGTOOLS_VER),rcs12 )
-	$(Q)$(call rcs-patch,babeltrace,$(RCS12_BABELTRACE_VER),rcs12 )
+	$(PATCH) userspace-rcu $(RCS12_LIBURCU_VER) rcs12
+	$(PATCH) lttng-ust $(RCS12_LTTNGUST_VER) rcs12
+	$(PATCH) lttng-tools $(RCS12_LTTNGTOOLS_VER) rcs12
+	$(PATCH) babeltrace $(RCS12_BABELTRACE_VER) rcs12
 
-rcs12.clean:
+rcsmaster.checkout:
 	$(TRACE)
+	$(Q)$(call run-create,userspace-rcu,origin/master,rcsmaster)
+	$(Q)$(call run-create,lttng-ust,origin/master,rcsmaster)
+	$(Q)$(call run-create,lttng-tools,origin/master,rcsmaster)
+	$(Q)$(call run-create,babeltrace,origin/master,rcsmaster)
+	$(Q)$(call create-builddir,rcsmaster)
+
+rcsmaster.patch: rcsmaster.checkout
+	$(TRACE)
+	$(PATCH) userspace-rcu master rcsmaster
+	$(PATCH) lttng-ust master rcsmaster
+	$(PATCH) lttng-tools master rcsmaster
+	$(PATCH) babeltrace master rcsmaster
+
+rcsmaster.clean rcs12.clean rcs.clean:
+	$(TRACE)
+	$(eval prefix=$(subst .clean,,$@))
 	$(Q)$(foreach repo, $(REPOS), \
-		cd $(repo); \
-		git checkout master; \
-		git branch -D rcs12; \
-		cd ..; \
-	)
-
-stable-2.7.checkout:
-	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,origin/stable-0.9,stable-0.9 )
-	$(Q)$(call run-create,lttng-ust,origin/stable-2.7,stable-2.7 )
-	$(Q)$(call run-create,lttng-tools,origin/stable-2.7,stable-2.7 )
-	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
-	$(MAKE) repo.pull repo.bls
-	$(Q)$(call create-builddir,stable-2.7)
-
-stable-2.8.checkout:
-	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,origin/stable-0.9,stable-0.9 )
-	$(Q)$(call run-create,lttng-ust,origin/stable-2.8,stable-2.8 )
-	$(Q)$(call run-create,lttng-tools,origin/stable-2.8,stable-2.8 )
-	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
-	$(MAKE) repo.pull repo.bls
-	$(Q)$(call create-builddir,stable-2.8)
-
-stable-2.9.checkout:
-	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,origin/stable-0.9,stable-0.9 )
-	$(Q)$(call run-create,lttng-ust,origin/stable-2.9,stable-2.9 )
-	$(Q)$(call run-create,lttng-tools,origin/stable-2.9,stable-2.9 )
-	$(Q)$(call run-create,babeltrace,origin/stable-1.5,stable-1.5 )
-	$(MAKE) repo.pull repo.bls
-	$(Q)$(call create-builddir,stable-2.9)
+		git -C $(repo) checkout master; \
+		git -C $(repo) branch -D $(prefix); )
 
 stable-2.10.checkout:
 	$(TRACE)
@@ -243,12 +206,12 @@ master.checkout:
 
 configure.%:
 	$(TRACE)
-	$(eval target=$(subst .$*,,$@))
+	$(TARGET)
 	$(CD) $(BUILDDIR)/$*; $(TOP)/$*/$(target) $(CONF_OPTION_$*)
 
 all.%:
 	$(TRACE)
-	$(eval target=$(subst .$*,,$@))
+	$(TARGET)
 	$(MAKE) configure.$*
 	$(MAKE) -C $(BUILDDIR)/$* $(target)
 
@@ -257,7 +220,7 @@ update: repo.pull
 
 install.%:
 	$(TRACE)
-	$(eval target=$(subst .$*,,$@))
+	$(TARGET)
 	$(MAKE) all.$*
 	$(SUDOMAKE) -C $(BUILDDIR)/$* $(target)
 
@@ -269,12 +232,12 @@ test.lttng-tools: fast_regression.lttng-tools root_regression.lttng-tools
 
 uninstall.%:
 	$(TRACE)
-	$(eval target=$(subst .$*,,$@))
+	$(TARGET)
 	$(SUDOMAKE) -C $(BUILDDIR)/$* $(target)
 
 distclean.%:
 	$(TRACE)
-	$(eval target=$(subst .$*,,$@))
+	$(TARGET)
 	$(Q)if [ -e $(BUILDDIR)/$*/Makefile ]; then \
 		make uninstall.$*; \
 		make -C $(BUILDDIR)/$* $(target); \
@@ -285,7 +248,7 @@ distclean.%:
 
 clean.% TAGS.% CTAGS.% distclean-tags.%:
 	$(TRACE)
-	$(eval target=$(subst .$*,,$@))
+	$(TARGET)
 	$(Q)if [ -e $(BUILDDIR)/$*/Makefile ]; then \
 		make -C $(BUILDDIR)/$* $(target); \
 	else \

@@ -1,0 +1,26 @@
+From 05bd7ecfc479037b80e22562c67fbbe2924b2f87 Mon Sep 17 00:00:00 2001
+Message-Id: <05bd7ecfc479037b80e22562c67fbbe2924b2f87.1601298744.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Thu, 16 Feb 2017 09:26:48 +0100
+Subject: [PATCH] adding debug information when using custom clock
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ liblttng-ust/lttng-clock.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/liblttng-ust/lttng-clock.c b/liblttng-ust/lttng-clock.c
+index 877b5d61..81194095 100644
+--- a/liblttng-ust/lttng-clock.c
++++ b/liblttng-ust/lttng-clock.c
+@@ -92,6 +92,7 @@ int lttng_ust_enable_trace_clock_override(void)
+ 	/* Use default uuid cb when NULL */
+ 	cmm_smp_mb();	/* Store callbacks before trace clock */
+ 	CMM_STORE_SHARED(lttng_trace_clock, &user_tc);
++	DBG("Use %s (%s) clock", user_tc.name(), user_tc.description());
+ 	return 0;
+ }
+ 
+-- 
+2.28.0
+

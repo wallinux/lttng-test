@@ -1,0 +1,17 @@
+#!/bin/bash
+# dir=$1
+# tag=$2
+# branch=$3
+
+pkg=$1-${2#"v"}
+echo -e "\nPatching $1, $pkg"
+
+git -C $1 reset --hard $2 >/dev/null
+
+patches=$(grep -v "^#" patches/$pkg/patches)
+for patch in $patches; do
+    echo -e " --- $patch"
+    git -C $1 am -3 $PWD/patches/$pkg/$patch > /dev/null
+done
+
+git -C $1 tag -f v_${3} >/dev/null

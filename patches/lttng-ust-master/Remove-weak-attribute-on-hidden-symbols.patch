@@ -1,0 +1,30 @@
+From 4276c42c7522ea927d6f942016b6fe07ad9e19e7 Mon Sep 17 00:00:00 2001
+Message-Id: <4276c42c7522ea927d6f942016b6fe07ad9e19e7.1601297671.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Mon, 9 Feb 2015 12:50:27 +0100
+Subject: [PATCH] lttng ust Remove weak attribute on hidden symbols
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ include/lttng/tracepoint.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/include/lttng/tracepoint.h b/include/lttng/tracepoint.h
+index 7cfae3e4..99e68dc4 100644
+--- a/include/lttng/tracepoint.h
++++ b/include/lttng/tracepoint.h
+@@ -398,9 +398,9 @@ __tracepoints__destroy(void)
+  * (or for the whole main program).
+  */
+ extern struct lttng_ust_tracepoint * const __start___tracepoints_ptrs[]
+-	__attribute__((weak, visibility("hidden")));
++	__attribute__((visibility("hidden")));
+ extern struct lttng_ust_tracepoint * const __stop___tracepoints_ptrs[]
+-	__attribute__((weak, visibility("hidden")));
++	__attribute__((visibility("hidden")));
+ 
+ /*
+  * When TRACEPOINT_PROBE_DYNAMIC_LINKAGE is defined, we do not emit a
+-- 
+2.28.0
+

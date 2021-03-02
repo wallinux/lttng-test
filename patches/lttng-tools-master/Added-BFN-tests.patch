@@ -1,0 +1,462 @@
+From f798a25141b938bbf7a6743fe4c1e8b487468478 Mon Sep 17 00:00:00 2001
+Message-Id: <f798a25141b938bbf7a6743fe4c1e8b487468478.1601358808.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Tue, 12 Jul 2016 15:33:00 +0200
+Subject: [PATCH] Added BFN tests
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ configure.ac                        |   1 +
+ tests/rcs_regression                |   1 +
+ tests/regression/Makefile.am        |   2 +-
+ tests/regression/bfn/Makefile.am    |  30 +++
+ tests/regression/bfn/bfn_envclock.c |  27 +++
+ tests/regression/bfn/test_bfn       | 332 ++++++++++++++++++++++++++++
+ 6 files changed, 392 insertions(+), 1 deletion(-)
+ create mode 100644 tests/regression/bfn/Makefile.am
+ create mode 100644 tests/regression/bfn/bfn_envclock.c
+ create mode 100755 tests/regression/bfn/test_bfn
+
+diff --git a/configure.ac b/configure.ac
+index b5ad1f2a..94ce5b38 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1142,6 +1142,7 @@ AC_CONFIG_FILES([
+ 	tests/Makefile
+ 	tests/destructive/Makefile
+ 	tests/regression/Makefile
++	tests/regression/bfn/Makefile
+ 	tests/regression/kernel/Makefile
+ 	tests/regression/tools/Makefile
+ 	tests/regression/tools/streaming/Makefile
+diff --git a/tests/rcs_regression b/tests/rcs_regression
+index 56a4ee27..c3e6176f 100644
+--- a/tests/rcs_regression
++++ b/tests/rcs_regression
+@@ -1,3 +1,4 @@
+ regression/kernel/test_clock_timestamp
+ regression/kernel/test_clock_arm_cntpct
+ regression/ust/clock-override/test_clock_arm_cntpct
++regression/bfn/test_bfn
+diff --git a/tests/regression/Makefile.am b/tests/regression/Makefile.am
+index 9ba7b42f..cf283b18 100644
+--- a/tests/regression/Makefile.am
++++ b/tests/regression/Makefile.am
+@@ -1,6 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
+-SUBDIRS = tools kernel ust
++SUBDIRS = tools kernel ust bfn
+ 
+ LOG_DRIVER_FLAGS = --merge --post-script $(top_srcdir)/tests/utils/warn_processes.sh
+ LOG_DRIVER = env PGREP='$(PGREP)' AM_TAP_AWK='$(AWK)' $(SHELL) \
+diff --git a/tests/regression/bfn/Makefile.am b/tests/regression/bfn/Makefile.am
+new file mode 100644
+index 00000000..cea6b1fa
+--- /dev/null
++++ b/tests/regression/bfn/Makefile.am
+@@ -0,0 +1,30 @@
++AM_CPPFLAGS = -I$(srcdir)
++
++# The rpath is necessary because libtool won't build a shared library
++# if it's noinst_
++GETCPU_LIBTOOL_FLAGS = \
++    -module \
++    -shared \
++    -avoid-version \
++    --no-as-needed \
++    -rpath $(abs_builddir)
++
++noinst_LTLIBRARIES = bfn_envclock.la
++bfn_envclock_la_LDFLAGS = $(GETCPU_LIBTOOL_FLAGS)
++
++noinst_SCRIPTS = test_bfn
++EXTRA_DIST = test_bfn
++
++all-local:
++	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \
++		for script in $(EXTRA_DIST); do \
++			cp -f $(srcdir)/$$script $(builddir); \
++		done; \
++	fi
++
++clean-local:
++	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \
++		for script in $(EXTRA_DIST); do \
++			rm -f $(builddir)/$$script; \
++		done; \
++	fi
+diff --git a/tests/regression/bfn/bfn_envclock.c b/tests/regression/bfn/bfn_envclock.c
+new file mode 100644
+index 00000000..78970712
+--- /dev/null
++++ b/tests/regression/bfn/bfn_envclock.c
+@@ -0,0 +1,27 @@
++/* $CC -shared -fPIC -o bfn_envclock.so bfn_envclock.c
++ */
++
++#include <stdint.h>
++#include <stdlib.h>
++
++uint64_t bfn_get_frequency(void) {
++	char* env = getenv("BFN_ENVCLOCK_FREQ");
++
++	if (env) {
++		return strtoull(env, 0, 0);
++	}
++	else {
++		return 0;
++	}
++}
++
++uint64_t bfn_get_offset(void) {
++	char* env = getenv("BFN_ENVCLOCK_OFFSET");
++
++	if (env) {
++		return strtoull(env, 0, 0);
++	}
++	else {
++		return 0;
++	}
++}
+diff --git a/tests/regression/bfn/test_bfn b/tests/regression/bfn/test_bfn
+new file mode 100755
+index 00000000..6385ef0e
+--- /dev/null
++++ b/tests/regression/bfn/test_bfn
+@@ -0,0 +1,332 @@
++#!/bin/bash
++#
++# Copyright (C) - 2016 Anders Wallin <anders.wallin@windriver.com>
++#
++# This library is free software; you can redistribute it and/or modify it under
++# the terms of the GNU Lesser General Public License as published by the Free
++# Software Foundation; version 2.1 of the License.
++#
++# This library is distributed in the hope that it will be useful, but WITHOUT
++# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
++# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
++# details.
++#
++# You should have received a copy of the GNU Lesser General Public License
++# along with this library; if not, write to the Free Software Foundation, Inc.,
++# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
++TEST_DESC="BFN tests"
++
++CURDIR=$(dirname $0)/
++TESTDIR=$CURDIR/../..
++SESSION_NAME="bfn"
++
++NUM_EVENTS=10
++TESTAPP_PATH="$TESTDIR/utils/testapp"
++TESTAPP_NAME="gen-ust-events"
++TESTAPP_BIN="$TESTAPP_PATH/$TESTAPP_NAME/$TESTAPP_NAME"
++TESTCMD="echo -n $NUM_EVENTS > /proc/lttng-test-filter-event"
++
++USER_EVENT_NAME="tp:tptest"
++KERNEL_EVENT_NAME="lttng_test_filter_event"
++
++BFN_ENVCLOCK_SO="$PWD/$CURDIR/.libs/bfn_envclock.so"
++BFN_FREQ=3840000
++CLOCK_PLUGIN_SO="/usr/lib/liblttng-ust-arm-cntpct-clock.so.0"
++
++METADATA_CLOCK_START_TOKEN="clock {"
++METADATA_CLOCK_END_TOKEN="};"
++
++METADATA_TOKEN_LIST=(
++    "name"
++    "description"
++    "freq"
++    "offset"
++)
++
++BFN_CLOCK_TOKEN_VALUE=(
++    "bfn"
++    "BFN Clock"
++    "bfn_freq"
++    "bfn_offset"
++)
++
++NUM_TESTS=85
++
++source $TESTDIR/utils/utils.sh
++
++function extract_clock_metadata()
++{
++    local metadata_file=$1
++    local clock_metadata_file=$2
++
++    cat $metadata_file \
++	| sed -n "/$METADATA_CLOCK_START_TOKEN/,/$METADATA_CLOCK_END_TOKEN/p" \
++	      > $clock_metadata_file
++    ok $? "Clock metadata extraction"
++}
++
++function extract_bfn_metadata()
++{
++    local clock_metadata_file=$1
++    local bfn_metadata_file=$2
++    cat $clock_metadata_file | sed -n "/bfn/,/offset =/p" > $bfn_metadata_file.tmp
++    grep -v "Epoch" $bfn_metadata_file.tmp > $bfn_metadata_file
++    ok $? "BFN metadata extraction"
++    rm $bfn_metadata_file.tmp
++}
++
++function extract_bfn_metadata_token()
++{
++    local bfn_metadata_file=$1
++    local token=$2
++
++    # Look for token and get value between ""
++    cat $bfn_metadata_file | grep $token | awk -F"= |;" '{print $2}' | tr -d '"'
++}
++
++function validate_metadata_tokens()
++{
++    bfn_freq=$1
++    bfn_offset=$2
++
++    local ctf_metadata_file=$(mktemp -p $TRACE_PATH ctf-metadata.XXXXX)
++    local clock_metadata_file=$(mktemp -p $TRACE_PATH clock-metadata.XXXXX)
++    local bfn_metadata_file=$(mktemp -p $TRACE_PATH bfn-metadata.XXXXX)
++    local result=""
++
++    $BABELTRACE_BIN -o ctf-metadata -w $ctf_metadata_file $TRACE_PATH
++    ok $? "Metadata extraction from babeltrace"
++    extract_clock_metadata $ctf_metadata_file $clock_metadata_file
++    extract_bfn_metadata $clock_metadata_file $bfn_metadata_file
++
++    test ${#METADATA_TOKEN_LIST[@]} -eq ${#BFN_CLOCK_TOKEN_VALUE[@]}
++    ok $? "Tokens to check(${#METADATA_TOKEN_LIST[@]}) and provided values(${#BFN_CLOCK_TOKEN_VALUE[@]}) count is equal"
++
++    result=$(extract_bfn_metadata_token $bfn_metadata_file ${METADATA_TOKEN_LIST[0]})
++    test "$result" == "${BFN_CLOCK_TOKEN_VALUE[0]}"
++    ok $? "Token \"${METADATA_TOKEN_LIST[0]}\" expect:${BFN_CLOCK_TOKEN_VALUE[0]} got:$result"
++
++    result=$(extract_bfn_metadata_token $bfn_metadata_file ${METADATA_TOKEN_LIST[1]})
++    test "$result" == "${BFN_CLOCK_TOKEN_VALUE[1]}"
++    ok $? "Token \"${METADATA_TOKEN_LIST[1]}\" expect:${BFN_CLOCK_TOKEN_VALUE[1]} got:$result"
++
++    result=$(extract_bfn_metadata_token $bfn_metadata_file ${METADATA_TOKEN_LIST[2]})
++    test "$result" == "$bfn_freq"
++    ok $? "Token \"${METADATA_TOKEN_LIST[2]}\" expect:$bfn_freq got:$result"
++
++    result=$(extract_bfn_metadata_token $bfn_metadata_file ${METADATA_TOKEN_LIST[3]})
++    test "$result" == "$bfn_offset"
++    ok $? "Token \"${METADATA_TOKEN_LIST[3]}\" expect:$bfn_offset got:$result"
++}
++
++function prepare()
++{
++    export BFN_ENVCLOCK_FREQ=$1
++    export BFN_ENVCLOCK_OFFSET=$2
++    export LD_PRELOAD=$BFN_ENVCLOCK_SO
++    export LTTNG_UST_CLOCK_PLUGIN=$CLOCK_PLUGIN_SO
++
++    modprobe lttng-clock-plugin-arm-cntpct
++}
++
++function cleanup()
++{
++    unset BFN_ENVCLOCK_FREQ
++    unset BFN_ENVCLOCK_OFFSET
++    unset LD_PRELOAD
++    unset LTTNG_UST_CLOCK_PLUGIN
++
++    rmmod lttng-clock-plugin-arm-cntpct
++    rmmod lttng-clock
++}
++
++
++function test_bfn_metadata_userspace()
++{
++    bfn_freq=$1
++    bfn_offset=$2
++
++    diag "test_bfn_metadata_userspace $1 $2"
++
++    prepare $bfn_freq $bfn_offset
++
++    start_lttng_sessiond
++
++    create_lttng_session_ok $SESSION_NAME $TRACE_PATH
++    enable_ust_lttng_event_ok $SESSION_NAME "$USER_EVENT_NAME"
++
++    start_lttng_tracing_ok $SESSION_NAME
++    $TESTAPP_BIN $NUM_EVENTS
++    stop_lttng_tracing_ok $SESSION_NAME
++
++    validate_metadata_tokens $bfn_freq $bfn_offset
++
++    destroy_lttng_session_ok $SESSION_NAME
++    stop_lttng_sessiond
++    cleanup
++}
++
++function test_bfn_metadata_kernel()
++{
++    bfn_freq=$1
++    bfn_offset=$2
++
++    diag "test_bfn_metadata_kernel $1 $2"
++
++    prepare $bfn_freq $bfn_offset
++
++    start_lttng_sessiond
++    modprobe lttng-test
++
++    create_lttng_session_ok $SESSION_NAME $TRACE_PATH
++    enable_kernel_lttng_event_ok $SESSION_NAME "$KERNEL_EVENT_NAME"
++
++    start_lttng_tracing_ok $SESSION_NAME
++    eval ${TESTCMD}
++    stop_lttng_tracing_ok $SESSION_NAME
++
++    validate_metadata_tokens $bfn_freq $bfn_offset
++
++    destroy_lttng_session_ok $SESSION_NAME
++    rmmod lttng-test
++    stop_lttng_sessiond
++    cleanup
++}
++
++function test_bfn_wo_preload()
++{
++    bfn_freq=$1
++    bfn_offset=$2
++
++    diag "test_bfn_wo_preload $1 $2"
++
++    prepare $bfn_freq $bfn_offset
++    unset LD_PRELOAD
++
++    start_lttng_sessiond
++    modprobe lttng-test
++
++    create_lttng_session_ok $SESSION_NAME $TRACE_PATH
++    enable_ust_lttng_event_ok $SESSION_NAME "$USER_EVENT_NAME"
++    enable_kernel_lttng_event_ok $SESSION_NAME "$KERNEL_EVENT_NAME"
++
++    start_lttng_tracing_ok $SESSION_NAME
++    $TESTAPP_BIN $NUM_EVENTS
++    eval ${TESTCMD}
++    stop_lttng_tracing_ok $SESSION_NAME
++
++    total_events=$((NUM_EVENTS*2))
++    no_of_events=$($BABELTRACE_BIN -n header $TRACE_PATH | wc -l)
++    test $no_of_events -eq $total_events
++    ok $? "Number of events: $no_of_events expected $total_events"
++
++    no_of_bfns=$($BABELTRACE_BIN -n header --clock-bfn $TRACE_PATH | cut -d, -f1 |  grep "\[NA\]" | wc -l)
++    test $no_of_bfns -eq $total_events
++    ok $? "Number of bfns: $no_of_bfns expected $total_events"
++
++    no_of_lbfns=$($BABELTRACE_BIN -n header --clock-lbfn $TRACE_PATH | cut -d, -f1 |  grep "\[NA\]" | wc -l)
++    test $no_of_lbfns -eq $total_events
++    ok $? "Number of lbfns: $no_of_lbfns expected $total_events"
++
++    #$BABELTRACE_BIN -n all  --clock-lbfn --clock-bfn $TRACE_PATH | cut -d, -f1
++
++    destroy_lttng_session_ok $SESSION_NAME
++    rmmod lttng-test
++    stop_lttng_sessiond
++    cleanup
++}
++
++function test_bfn()
++{
++    bfn_freq=$1
++    bfn_offset=$2
++
++    diag "test_bfn $1 $2"
++
++    prepare $bfn_freq $bfn_offset
++
++    start_lttng_sessiond
++    modprobe lttng-test
++
++    create_lttng_session_ok $SESSION_NAME $TRACE_PATH
++    enable_ust_lttng_event_ok $SESSION_NAME "$USER_EVENT_NAME"
++    enable_kernel_lttng_event_ok $SESSION_NAME "$KERNEL_EVENT_NAME"
++
++    start_lttng_tracing_ok $SESSION_NAME
++    $TESTAPP_BIN $NUM_EVENTS
++    eval ${TESTCMD}
++    stop_lttng_tracing_ok $SESSION_NAME
++
++    total_events=$((NUM_EVENTS*2))
++    no_of_events=$($BABELTRACE_BIN -n header $TRACE_PATH | wc -l)
++    test $no_of_events -eq $total_events
++    ok $? "Number of events: $no_of_events expected $total_events"
++
++    if [ $bfn_freq != 0 ]; then
++	no_of_bfns=$($BABELTRACE_BIN -n header --clock-bfn $TRACE_PATH | cut -d, -f1 |  grep "\[[0-9.]*\]" | wc -l)
++    else
++	no_of_bfns=$($BABELTRACE_BIN -n header --clock-bfn $TRACE_PATH | cut -d, -f1 |  grep "\[NA\]" | wc -l)
++    fi
++    test $no_of_bfns -eq $total_events
++    ok $? "Number of bfns: $no_of_bfns expected $total_events"
++
++    if [ $bfn_freq != 0 ]; then
++	no_of_lbfns=$($BABELTRACE_BIN -n header --clock-lbfn $TRACE_PATH | cut -d, -f1 |  grep "\[[0-9]*\]" | wc -l)
++    else
++	no_of_lbfns=$($BABELTRACE_BIN -n header --clock-lbfn $TRACE_PATH | cut -d, -f1 |  grep "\[NA\]" | wc -l)
++    fi
++    test $no_of_lbfns -eq $total_events
++    ok $? "Number of lbfns: $no_of_lbfns expected $total_events"
++
++    #$BABELTRACE_BIN -n all  --clock-lbfn --clock-bfn $TRACE_PATH | cut -d, -f1
++
++    destroy_lttng_session_ok $SESSION_NAME
++    rmmod lttng-test
++    stop_lttng_sessiond
++    cleanup
++}
++
++plan_tests $NUM_TESTS
++
++print_test_banner "$TEST_DESC"
++
++if [ -x "$BFN_ENVCLOCK_SO" ]; then
++    foundobj=1
++else
++    diag $BFN_ENVCLOCK_SO not found
++    foundobj=0
++fi
++skip $foundobj "No shared object generated. Skipping all tests." $NUM_TESTS && exit 0
++
++if [ -x "$CLOCK_PLUGIN_SO" ]; then
++    foundobj=1
++else
++    diag $CLOCK_PLUGIN_SO not found
++    foundobj=0
++fi
++skip $foundobj "No shared object generated. Skipping all tests." $NUM_TESTS && exit 0
++
++TESTS=(
++    "test_bfn_metadata_userspace $BFN_FREQ 100"
++    "test_bfn_metadata_kernel $BFN_FREQ 100"
++    "test_bfn_wo_preload $BFN_FREQ 0"
++    "test_bfn 0 0"
++    "test_bfn $BFN_FREQ 0"
++    "test_bfn $BFN_FREQ 1000000"
++    "test_bfn $BFN_FREQ -1000000"
++)
++
++TEST_COUNT=${#TESTS[@]}
++i=0
++
++while [ "$i" -lt "$TEST_COUNT" ]; do
++
++    TRACE_PATH=$(mktemp -d)
++
++    # Execute test
++    ${TESTS[$i]}
++
++    rm -rf $TRACE_PATH
++
++    let "i++"
++done
+-- 
+2.28.0
+
