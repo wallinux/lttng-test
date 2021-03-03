@@ -45,7 +45,7 @@ REPOS		+= $(EXTRA_REPOS)
 CONF_PREFIX			?= --prefix=/usr
 CONF_OPTION_userspace-rcu 	?= $(CONF_PREFIX)
 CONF_OPTION_lttng-ust 		?= $(CONF_PREFIX) --disable-man-pages
-CONF_OPTION_lttng-tools 	?= $(CONF_PREFIX) --with-lttng-ust --enable-manpages --enable-embedded-help
+CONF_OPTION_lttng-tools 	?= $(CONF_PREFIX) --with-lttng-ust --enable-man-pages --enable-embedded-help
 CONF_OPTION_babeltrace 		?= $(CONF_PREFIX)
 
 BUILDDIR	= $(TOP)/build
