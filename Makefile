@@ -199,6 +199,8 @@ master.checkout:
 	$(MAKE) repo.pull repo.bls
 	$(Q)$(call create-builddir,master)
 
+master.patch: master.checkout
+
 configure.%:
 	$(TRACE)
 	$(TARGET)
