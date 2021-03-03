@@ -74,43 +74,30 @@ help:
 	$(Q)grep -e ": " -e ":$$"  Makefile | grep -v grep | cut -d ':' -f 1 | tr ' ' '\n' | sort
 	$(NORMAL)
 
-repo.clone:
-	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS),git clone $(REPO_$(repo)); )
+$(REPOS):
+	$(Q)git clone $(REPO_$@)
 
 repo.fetch:
 	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS),git -C $(repo) fetch --prune; )
+	$(Q)$(foreach repo, $(REPOS),make $(repo); git -C $(repo) fetch --prune; )
 
 repo.pull:
 	$(TRACE)
-	$(Q)$(foreach repo,$(REPOS),git -C $(repo) pull; )
-
-repo.latest_tag:
-	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS), \
-		pushd $(repo) >/dev/null; \
-		basename $$PWD; \
-		git describe --abbrev=0 --tags; \
-		popd >/dev/null; \
-	)
+	$(Q)$(foreach repo,$(REPOS),make $(repo); git -C $(repo) pull; )
 
 repo.bls:
 	$(TRACE)
 	$(Q)$(foreach repo, $(REPOS), \
-		pushd $(repo) >/dev/null; \
 		echo -e "\n--- $(repo) ---"; \
-		git branch | grep \*; \
-		git log -1 --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative; \
-		git describe --abbrev=0 --tags; \
-		popd >/dev/null; \
+		git -C $(repo) branch | grep \*; \
+		git -C $(repo) log -1 --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative; \
+		git -C $(repo) describe --abbrev=0 --tags; \
 	)
 
 RCS_LIBURCU_VER=v0.9.7
 RCS_LTTNGUST_VER=v2.10.7
 RCS_LTTNGTOOLS_VER=v2.10.11
 RCS_BABELTRACE_VER=v1.5.8
-
 rcs.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,$(RCS_LIBURCU_VER),rcs)
@@ -125,12 +112,12 @@ rcs.patch: rcs.checkout
 	$(PATCH) lttng-ust $(RCS_LTTNGUST_VER) rcs
 	$(PATCH) lttng-tools $(RCS_LTTNGTOOLS_VER) rcs 
 	$(PATCH) babeltrace $(RCS_BABELTRACE_VER) rcs 
+	$(MAKE) repo.bls
 
 RCS12_LIBURCU_VER=v0.12.1
 RCS12_LTTNGUST_VER=v2.12.0
 RCS12_LTTNGTOOLS_VER=v2.12.2
 RCS12_BABELTRACE_VER=v2.0.3
-
 rcs12.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,$(RCS12_LIBURCU_VER),rcs12)
@@ -145,6 +132,7 @@ rcs12.patch: rcs12.checkout
 	$(PATCH) lttng-ust $(RCS12_LTTNGUST_VER) rcs12
 	$(PATCH) lttng-tools $(RCS12_LTTNGTOOLS_VER) rcs12
 	$(PATCH) babeltrace $(RCS12_BABELTRACE_VER) rcs12
+	$(MAKE) repo.bls
 
 rcsmaster.checkout:
 	$(TRACE)
@@ -160,6 +148,7 @@ rcsmaster.patch: rcsmaster.checkout
 	$(PATCH) lttng-ust master rcsmaster
 	$(PATCH) lttng-tools master rcsmaster
 	$(PATCH) babeltrace master rcsmaster
+	$(MAKE) repo.bls
 
 rcsmaster.clean rcs12.clean rcs.clean:
 	$(TRACE)
