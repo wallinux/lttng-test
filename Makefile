@@ -221,9 +221,15 @@ install.%:
 
 fast_regression.lttng-tools root_regression.lttng-tools:
 	$(TRACE)
-	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh $@;
+	$(eval target=$(subst .lttng-tools,,$@))
+	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh $(target) |& tee $(target).out
 
-test.lttng-tools: fast_regression.lttng-tools root_regression.lttng-tools
+userspace_regression.lttng-tools:
+	$(TRACE)
+	$(eval target=$(subst .lttng-tools,,$@))
+	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh $(TOP)/$(target) |& tee $(target).out
+
+test.lttng-tools: userspace_regression.lttng-tools
 
 uninstall.%:
 	$(TRACE)
