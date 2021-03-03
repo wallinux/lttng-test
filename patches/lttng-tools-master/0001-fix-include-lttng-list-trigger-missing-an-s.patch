@@ -1,0 +1,26 @@
+From 970a0ff60f99c16622ac3f264227961691ee4d6f Mon Sep 17 00:00:00 2001
+From: Anders Wallin <wallinux@gmail.com>
+Date: Wed, 3 Mar 2021 09:33:26 +0100
+Subject: [PATCH lttng-tools] fix: include lttng-list-trigger missing an 's'
+
+Signed-off-by: Anders Wallin <wallinux@gmail.com>
+---
+ src/bin/lttng/commands/list_triggers.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/bin/lttng/commands/list_triggers.c b/src/bin/lttng/commands/list_triggers.c
+index ac6e1ba3..a6f02119 100644
+--- a/src/bin/lttng/commands/list_triggers.c
++++ b/src/bin/lttng/commands/list_triggers.c
+@@ -19,7 +19,7 @@
+ 
+ #ifdef LTTNG_EMBED_HELP
+ static const char help_msg[] =
+-#include <lttng-list-trigger.1.h>
++#include <lttng-list-triggers.1.h>
+ ;
+ #endif
+ 
+-- 
+2.30.1
+

@@ -15,4 +15,5 @@ Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
 0001-Tests-add-missing-multilib-tracing-test.patch
 #0001-Use-platform-independant-types-in-sessiond-to-consum.patch
 
-
+# tmp
+0001-fix-include-lttng-list-trigger-missing-an-s.patch
