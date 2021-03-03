@@ -177,6 +177,8 @@ stable-2.10.checkout:
 	$(MAKE) repo.pull repo.bls
 	$(Q)$(call create-builddir,stable-2.10)
 
+stable-2.10.patch: stable-2.10.checkout
+
 stable-2.11.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,origin/stable-0.11,stable-0.11 )
@@ -186,6 +188,8 @@ stable-2.11.checkout:
 	$(MAKE) repo.pull repo.bls
 	$(Q)$(call create-builddir,stable-2.11)
 
+stable-2.11.patch: stable-2.11.checkout
+
 stable-2.12.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,origin/stable-0.12,stable-0.12 )
@@ -194,6 +198,8 @@ stable-2.12.checkout:
 	$(Q)$(call run-create,babeltrace,origin/stable-2.0,stable-2.0 )
 	$(MAKE) repo.pull repo.bls
 	$(Q)$(call create-builddir,stable-2.12)
+
+stable-2.12.patch: stable-2.12.checkout
 
 master.checkout:
 	$(TRACE)
