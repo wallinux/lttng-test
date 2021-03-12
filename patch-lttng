@@ -11,7 +11,12 @@ git -C $1 reset --hard $2 >/dev/null
 patches=$(grep -v "^#" patches/$pkg/patches)
 for patch in $patches; do
     echo -e " --- $patch"
-    git -C $1 am -3 $PWD/patches/$pkg/$patch > /dev/null
+    git -C $1 am -q -3 $PWD/patches/$pkg/$patch
+    if [ $? -ne 0 ]; then
+	git -C $1 am --abort
+	echo "FAILED: git -C $1 am -q -3 $PWD/patches/$pkg/$patch"
+	exit
+    fi
 done
 
 git -C $1 tag -f v_${3} >/dev/null
