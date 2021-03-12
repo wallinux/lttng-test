@@ -6,14 +6,19 @@ Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
 Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
 0001-tests-epoll_wait-missing-in-aarch64.patch
 0001-tmpfix-using-nroff-instead-of-man.patch
-0001-Use-platform-independant-types-in-sessiond-to-consum.patch
+0001-tests-use-openat-syscall-on-axxiax86-64.patch
+0001-Fix-build-failure-with-fno-common.patch
+0001-test-added-dependency-to-liburcu-for-libhealthexit.patch
+
+# axxiaarm & axxiaarm64
 Added-support-for-BFN-clock.patch
 Added-BFN-tests.patch
-0001-tests-use-openat-syscall-on-axxiax86-64.patch
 
 # axxiaarm64
 Removing-failing-aarch64-syscall-tests.patch
 
 # axxiax86-64
-0001-tests-epoll_wait-is-not-present-on-axxiax86-64.patch
 0001-Tests-add-missing-multilib-tracing-test.patch
+0001-Use-platform-independant-types-in-sessiond-to-consum.patch
+0001-lttng-tools-2.10-Fix-multilib-internal-packed-struct.patch
+0001-lttng-tools-fix-regression-in-multilib-internal-pack.patch

@@ -1,0 +1,47 @@
+From 928192bf250a0199dd28ac1648d692b5285d2653 Mon Sep 17 00:00:00 2001
+Message-Id: <928192bf250a0199dd28ac1648d692b5285d2653.1612279617.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Tue, 2 Feb 2021 14:22:31 +0000
+Subject: [PATCH 1/1] test: added dependency to liburcu for libhealthexit
+
+removed test_thread_exit from long_regression since it may fail.
+test case removed in newer versions of lttng-tools
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+
+%% original patch: 0001-test-added-dependency-to-liburcu-for-libhealthexit.patch
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ tests/long_regression                     | 1 -
+ tests/regression/tools/health/Makefile.am | 2 +-
+ 2 files changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/tests/long_regression b/tests/long_regression
+index 105dc510..16211764 100644
+--- a/tests/long_regression
++++ b/tests/long_regression
+@@ -1,7 +1,6 @@
+ regression/tools/filtering/test_invalid_filter
+ regression/tools/filtering/test_unsupported_op
+ regression/tools/filtering/test_valid_filter
+-regression/tools/health/test_thread_exit
+ regression/tools/health/test_thread_stall
+ regression/tools/health/test_tp_fail
+ regression/tools/streaming/test_ust
+diff --git a/tests/regression/tools/health/Makefile.am b/tests/regression/tools/health/Makefile.am
+index c8deb5e5..65c538fc 100644
+--- a/tests/regression/tools/health/Makefile.am
++++ b/tests/regression/tools/health/Makefile.am
+@@ -20,7 +20,7 @@ FORCE_SHARED_LIB_OPTIONS = -module -shared -avoid-version \
+ # Health thread exit ld_preloaded test lib
+ libhealthexit_la_SOURCES=health_exit.c
+ libhealthexit_la_LDFLAGS= $(FORCE_SHARED_LIB_OPTIONS)
+-libhealthexit_la_LIBADD = $(DL_LIBS)
++libhealthexit_la_LIBADD = $(DL_LIBS) -lurcu
+ 
+ # Health thread stall ld_preloaded test lib
+ libhealthstall_la_SOURCES=health_stall.c
+-- 
+2.18.1
+

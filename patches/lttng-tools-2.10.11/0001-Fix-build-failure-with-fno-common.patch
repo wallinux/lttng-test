@@ -1,0 +1,123 @@
+From 026020f4da29c39bd85d8916967f1a30b143769e Mon Sep 17 00:00:00 2001
+Message-Id: <026020f4da29c39bd85d8916967f1a30b143769e.1610043554.git.anders.wallin@windriver.com>
+From: Michael Jeanson <mjeanson@efficios.com>
+Date: Thu, 16 Jan 2020 14:34:47 -0500
+Subject: [PATCH 1/1] Fix: build failure with -fno-common
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+GCC 10 will default to building with -fno-common, this inhibits the
+linker from merging multiple tentative definitions of a symbol in an
+archive.
+
+I'm not sure I understand what happen with the symbols in mi-lttng.h
+but a similar issue was adressed in:
+
+  commit 4965f956f3ef47388fb4a1b2f8f504abfe31afe7
+  Author: Jérémie Galarneau <jeremie.galarneau@efficios.com>
+  Date:   Fri May 22 12:53:30 2015 -0400
+
+    Fix: Mark MI and Config string declarations as extern
+
+    This fixes a build issue with GCC 5.1 which would complain about
+    these symbols being defined multiple times.
+
+Make sure these symbols are extern and defined only in one compile unit.
+
+For more information, see:
+https://gcc.gnu.org/gcc-10/porting_to.html
+
+Change-Id: I139c9695371836cb1011f9ce192080b602ed2fbc
+Signed-off-by: Michael Jeanson <mjeanson@efficios.com>
+Signed-off-by: Jérémie Galarneau <jeremie.galarneau@efficios.com>
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ src/bin/lttng-consumerd/lttng-consumerd.h | 2 +-
+ src/bin/lttng-sessiond/ust-app.c          | 4 ++++
+ src/bin/lttng-sessiond/ust-app.h          | 6 +++---
+ src/common/mi-lttng.h                     | 6 +++---
+ 4 files changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/src/bin/lttng-consumerd/lttng-consumerd.h b/src/bin/lttng-consumerd/lttng-consumerd.h
+index 6d18fdf8..dbbb83e8 100644
+--- a/src/bin/lttng-consumerd/lttng-consumerd.h
++++ b/src/bin/lttng-consumerd/lttng-consumerd.h
+@@ -23,7 +23,7 @@
+ #define NR_LTTNG_CONSUMER_READY		1
+ extern int lttng_consumer_ready;
+ 
+-const char *tracing_group_name;
++extern const char *tracing_group_name;
+ 
+ enum lttng_consumer_type lttng_consumer_get_type(void);
+ 
+diff --git a/src/bin/lttng-sessiond/ust-app.c b/src/bin/lttng-sessiond/ust-app.c
+index efc82b05..6d5dbefe 100644
+--- a/src/bin/lttng-sessiond/ust-app.c
++++ b/src/bin/lttng-sessiond/ust-app.c
+@@ -44,6 +44,10 @@
+ #include "lttng-sessiond.h"
+ #include "notification-thread-commands.h"
+ 
++struct lttng_ht *ust_app_ht;
++struct lttng_ht *ust_app_ht_by_sock;
++struct lttng_ht *ust_app_ht_by_notify_sock;
++
+ static
+ int ust_app_flush_app_session(struct ust_app *app, struct ust_app_session *ua_sess);
+ 
+diff --git a/src/bin/lttng-sessiond/ust-app.h b/src/bin/lttng-sessiond/ust-app.h
+index 0c69a6e6..9a871c39 100644
+--- a/src/bin/lttng-sessiond/ust-app.h
++++ b/src/bin/lttng-sessiond/ust-app.h
+@@ -80,19 +80,19 @@ struct ust_register_msg {
+  * Global applications HT used by the session daemon. This table is indexed by
+  * PID using the pid_n node and pid value of an ust_app.
+  */
+-struct lttng_ht *ust_app_ht;
++extern struct lttng_ht *ust_app_ht;
+ 
+ /*
+  * Global applications HT used by the session daemon. This table is indexed by
+  * socket using the sock_n node and sock value of an ust_app.
+  */
+-struct lttng_ht *ust_app_ht_by_sock;
++extern struct lttng_ht *ust_app_ht_by_sock;
+ 
+ /*
+  * Global applications HT used by the session daemon. This table is indexed by
+  * socket using the notify_sock_n node and notify_sock value of an ust_app.
+  */
+-struct lttng_ht *ust_app_ht_by_notify_sock;
++extern struct lttng_ht *ust_app_ht_by_notify_sock;
+ 
+ /* Stream list containing ust_app_stream. */
+ struct ust_app_stream_list {
+diff --git a/src/common/mi-lttng.h b/src/common/mi-lttng.h
+index e7cf8af9..e3c68035 100644
+--- a/src/common/mi-lttng.h
++++ b/src/common/mi-lttng.h
+@@ -107,8 +107,8 @@ extern const char * const mi_lttng_element_save;
+ 
+ /* Strings related to load command */
+ extern const char * const mi_lttng_element_load;
+-LTTNG_HIDDEN const char * const mi_lttng_element_load_overrides;
+-LTTNG_HIDDEN const char * const mi_lttng_element_load_override_url;
++LTTNG_HIDDEN extern const char * const mi_lttng_element_load_overrides;
++LTTNG_HIDDEN extern const char * const mi_lttng_element_load_override_url;
+ 
+ /* General element of mi_lttng */
+ extern const char * const mi_lttng_element_empty;
+@@ -183,7 +183,7 @@ extern const char * const mi_lttng_element_snapshot_session_name;
+ extern const char * const mi_lttng_element_snapshots;
+ 
+ /* String related to track/untrack command */
+-const char * const mi_lttng_element_track_untrack_all_wildcard;
++extern const char * const mi_lttng_element_track_untrack_all_wildcard;
+ 
+ /* Utility string function  */
+ const char *mi_lttng_loglevel_string(int value, enum lttng_domain_type domain);
+-- 
+2.26.2
+
