@@ -1,0 +1,63 @@
+From 6867428a1214c2811a9764c7b4d482437e8f76a3 Mon Sep 17 00:00:00 2001
+From: Heng Guo <heng.guo@windriver.com>
+Date: Wed, 3 Feb 2021 10:15:33 +0800
+Subject: [PATCH] lttng-tools: fix regression in multilib internal packed
+ structures
+
+When lttng ptest runs with commit:
+c15052db92a34ddd5f2e0d52df8c05a0b1f16bd1, test_event_perf failed because
+empty context is in trace log, but not correct "perf:thread:page-fault".
+
+An union type data is using in lttng_event_context_packed, for different
+context type - perf context and app context. In
+COPY_EVENT_CONTEXT_PACKED, the perf_counter would be overwritten by
+app_ctx, if the context type is one of perf.
+
+So update COPY_EVENT_CONTEXT_PACKED to process context data by its
+context type.
+
+Signed-off-by: Heng Guo <heng.guo@windriver.com>
+---
+ include/lttng/event-internal.h | 26 ++++++++++++++++++--------
+ 1 file changed, 18 insertions(+), 8 deletions(-)
+
+diff --git a/include/lttng/event-internal.h b/include/lttng/event-internal.h
+index 37df9120..5992b106 100644
+--- a/include/lttng/event-internal.h
++++ b/include/lttng/event-internal.h
+@@ -97,14 +97,24 @@ struct lttng_event_packed {
+ 
+ 
+ 
+-#define COPY_EVENT_CONTEXT_PACKED(dst, src)											\
+-do {																				\
+-	(dst)->ctx = (src)->ctx;														\
+-	(dst)->u.perf_counter.type = (src)->u.perf_counter.type;						\
+-	(dst)->u.perf_counter.config = (src)->u.perf_counter.config;					\
+-	memcpy((dst)->u.perf_counter.name, (src)->u.perf_counter.name, LTTNG_SYMBOL_NAME_LEN);	\
+-	(dst)->u.app_ctx.provider_name = (src)->u.app_ctx.provider_name;				\
+-	(dst)->u.app_ctx.ctx_name = (src)->u.app_ctx.ctx_name;							\
++#define COPY_EVENT_CONTEXT_PACKED(dst, src)								\
++do {													\
++	(dst)->ctx = (src)->ctx;									\
++	switch ((src)->ctx) {										\
++	case LTTNG_EVENT_CONTEXT_PERF_COUNTER:								\
++	case LTTNG_EVENT_CONTEXT_PERF_CPU_COUNTER:							\
++	case LTTNG_EVENT_CONTEXT_PERF_THREAD_COUNTER:							\
++		(dst)->u.perf_counter.type = (src)->u.perf_counter.type;				\
++		(dst)->u.perf_counter.config = (src)->u.perf_counter.config;				\
++		memcpy((dst)->u.perf_counter.name, (src)->u.perf_counter.name, LTTNG_SYMBOL_NAME_LEN);	\
++		break;											\
++	case LTTNG_EVENT_CONTEXT_APP_CONTEXT:								\
++		(dst)->u.app_ctx.provider_name = (src)->u.app_ctx.provider_name;			\
++		(dst)->u.app_ctx.ctx_name = (src)->u.app_ctx.ctx_name;					\
++		break;											\
++	default:											\
++		break;											\
++	}												\
+ } while (0)
+ 
+ #define COPY_EVENT_PACKED(dst, src)											\
+-- 
+2.26.1
+
