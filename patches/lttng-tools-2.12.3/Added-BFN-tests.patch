@@ -1,5 +1,5 @@
-From f798a25141b938bbf7a6743fe4c1e8b487468478 Mon Sep 17 00:00:00 2001
-Message-Id: <f798a25141b938bbf7a6743fe4c1e8b487468478.1601358808.git.anders.wallin@windriver.com>
+From d6e58de9afb12404c64f0a737a8c59c083dafc63 Mon Sep 17 00:00:00 2001
+Message-Id: <d6e58de9afb12404c64f0a737a8c59c083dafc63.1616510143.git.wallinux@gmail.com>
 From: Anders Wallin <anders.wallin@windriver.com>
 Date: Tue, 12 Jul 2016 15:33:00 +0200
 Subject: [PATCH] Added BFN tests
@@ -18,10 +18,10 @@ Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
  create mode 100755 tests/regression/bfn/test_bfn
 
 diff --git a/configure.ac b/configure.ac
-index b5ad1f2a..94ce5b38 100644
+index 190f25d8..1fb8ae8a 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -1142,6 +1142,7 @@ AC_CONFIG_FILES([
+@@ -1145,6 +1145,7 @@ AC_CONFIG_FILES([
  	tests/Makefile
  	tests/destructive/Makefile
  	tests/regression/Makefile
@@ -121,7 +121,7 @@ index 00000000..78970712
 +}
 diff --git a/tests/regression/bfn/test_bfn b/tests/regression/bfn/test_bfn
 new file mode 100755
-index 00000000..6385ef0e
+index 00000000..77f0f976
 --- /dev/null
 +++ b/tests/regression/bfn/test_bfn
 @@ -0,0 +1,332 @@
@@ -283,7 +283,7 @@ index 00000000..6385ef0e
 +    enable_ust_lttng_event_ok $SESSION_NAME "$USER_EVENT_NAME"
 +
 +    start_lttng_tracing_ok $SESSION_NAME
-+    $TESTAPP_BIN $NUM_EVENTS
++    $TESTAPP_BIN -i $NUM_EVENTS
 +    stop_lttng_tracing_ok $SESSION_NAME
 +
 +    validate_metadata_tokens $bfn_freq $bfn_offset
@@ -338,7 +338,7 @@ index 00000000..6385ef0e
 +    enable_kernel_lttng_event_ok $SESSION_NAME "$KERNEL_EVENT_NAME"
 +
 +    start_lttng_tracing_ok $SESSION_NAME
-+    $TESTAPP_BIN $NUM_EVENTS
++    $TESTAPP_BIN -i $NUM_EVENTS
 +    eval ${TESTCMD}
 +    stop_lttng_tracing_ok $SESSION_NAME
 +
@@ -380,7 +380,7 @@ index 00000000..6385ef0e
 +    enable_kernel_lttng_event_ok $SESSION_NAME "$KERNEL_EVENT_NAME"
 +
 +    start_lttng_tracing_ok $SESSION_NAME
-+    $TESTAPP_BIN $NUM_EVENTS
++    $TESTAPP_BIN -i $NUM_EVENTS
 +    eval ${TESTCMD}
 +    stop_lttng_tracing_ok $SESSION_NAME
 +
@@ -458,5 +458,5 @@ index 00000000..6385ef0e
 +    let "i++"
 +done
 -- 
-2.28.0
+2.31.0
 

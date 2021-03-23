@@ -1,10 +1,8 @@
-From db6e07f8576c7d5b03089deba597b13065db4248 Mon Sep 17 00:00:00 2001
-Message-Id: <db6e07f8576c7d5b03089deba597b13065db4248.1601303162.git.anders.wallin@windriver.com>
+From 5b8f40a099f5a32635e2222340c4a379bc5791b6 Mon Sep 17 00:00:00 2001
+Message-Id: <5b8f40a099f5a32635e2222340c4a379bc5791b6.1616511522.git.anders.wallin@windriver.com>
 From: Anders Wallin <anders.wallin@windriver.com>
 Date: Mon, 11 Jul 2016 15:54:44 +0200
-Subject: [PATCH] Added tests for ARM CNTPCT clock plugin
-
-Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+Subject: [PATCH 1/1] Added tests for ARM CNTPCT clock plugin
 
 added clock tests for monotonic and arm_cntpct clock
 
@@ -12,12 +10,12 @@ Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
 ---
  tests/Makefile.am                             |   4 +-
  tests/rcs_regression                          |   3 +
- tests/regression/kernel/Makefile.am           |   3 +-
+ tests/regression/kernel/Makefile.am           |   1 +
  tests/regression/kernel/test_clock_arm_cntpct | 184 ++++++++++++++++++
  tests/regression/kernel/test_clock_timestamp  | 173 ++++++++++++++++
  .../regression/ust/clock-override/Makefile.am |   6 +-
  .../ust/clock-override/test_clock_arm_cntpct  | 171 ++++++++++++++++
- 7 files changed, 538 insertions(+), 6 deletions(-)
+ 7 files changed, 537 insertions(+), 5 deletions(-)
  create mode 100644 tests/rcs_regression
  create mode 100755 tests/regression/kernel/test_clock_arm_cntpct
  create mode 100755 tests/regression/kernel/test_clock_timestamp
@@ -48,19 +46,17 @@ index 00000000..56a4ee27
 +regression/kernel/test_clock_arm_cntpct
 +regression/ust/clock-override/test_clock_arm_cntpct
 diff --git a/tests/regression/kernel/Makefile.am b/tests/regression/kernel/Makefile.am
-index 8547efd6..956cee2c 100644
+index 6be1fd29..da212ed9 100644
 --- a/tests/regression/kernel/Makefile.am
 +++ b/tests/regression/kernel/Makefile.am
-@@ -5,7 +5,8 @@ EXTRA_DIST = test_event_basic test_all_events test_syscall \
+@@ -5,6 +5,7 @@ EXTRA_DIST = test_event_basic test_all_events test_syscall \
  		test_select_poll_epoll test_lttng_logger \
  		test_userspace_probe test_callstack \
  		test_syscall validate_select_poll_epoll.py \
--		test_ns_contexts test_ns_contexts_change
-+		test_ns_contexts test_ns_contexts_change \
-+		test_clock_arm_cntpct test_clock_timestamp
++		test_clock_arm_cntpct test_clock_timestamp \
+ 		test_ns_contexts test_ns_contexts_change \
+ 		test_channel
  
- noinst_PROGRAMS = select_poll_epoll
- select_poll_epoll_SOURCES = select_poll_epoll.c
 diff --git a/tests/regression/kernel/test_clock_arm_cntpct b/tests/regression/kernel/test_clock_arm_cntpct
 new file mode 100755
 index 00000000..555f33fd
@@ -456,7 +452,7 @@ index 9495bca0..cfb3a94e 100644
  	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \
 diff --git a/tests/regression/ust/clock-override/test_clock_arm_cntpct b/tests/regression/ust/clock-override/test_clock_arm_cntpct
 new file mode 100755
-index 00000000..06ff19a8
+index 00000000..9d0be36e
 --- /dev/null
 +++ b/tests/regression/ust/clock-override/test_clock_arm_cntpct
 @@ -0,0 +1,171 @@
@@ -511,7 +507,7 @@ index 00000000..06ff19a8
 +# MUST set TESTDIR before calling those functions
 +function run_app()
 +{
-+	$TESTAPP_BIN $NUM_EVENT
++	$TESTAPP_BIN -i $NUM_EVENT
 +	ok $? "Application done"
 +}
 +
@@ -632,5 +628,5 @@ index 00000000..06ff19a8
 +	let "i++"
 +done
 -- 
-2.28.0
+2.29.2
 

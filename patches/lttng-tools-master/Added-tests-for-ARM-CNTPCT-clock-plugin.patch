@@ -1,10 +1,8 @@
-From db6e07f8576c7d5b03089deba597b13065db4248 Mon Sep 17 00:00:00 2001
-Message-Id: <db6e07f8576c7d5b03089deba597b13065db4248.1601303162.git.anders.wallin@windriver.com>
+From d0659f2d2ef00c10524758d6b9806f2e11af7b8c Mon Sep 17 00:00:00 2001
+Message-Id: <d0659f2d2ef00c10524758d6b9806f2e11af7b8c.1616510298.git.wallinux@gmail.com>
 From: Anders Wallin <anders.wallin@windriver.com>
 Date: Mon, 11 Jul 2016 15:54:44 +0200
 Subject: [PATCH] Added tests for ARM CNTPCT clock plugin
-
-Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
 
 added clock tests for monotonic and arm_cntpct clock
 
@@ -456,7 +454,7 @@ index 9495bca0..cfb3a94e 100644
  	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \
 diff --git a/tests/regression/ust/clock-override/test_clock_arm_cntpct b/tests/regression/ust/clock-override/test_clock_arm_cntpct
 new file mode 100755
-index 00000000..06ff19a8
+index 00000000..9d0be36e
 --- /dev/null
 +++ b/tests/regression/ust/clock-override/test_clock_arm_cntpct
 @@ -0,0 +1,171 @@
@@ -511,7 +509,7 @@ index 00000000..06ff19a8
 +# MUST set TESTDIR before calling those functions
 +function run_app()
 +{
-+	$TESTAPP_BIN $NUM_EVENT
++	$TESTAPP_BIN -i $NUM_EVENT
 +	ok $? "Application done"
 +}
 +
@@ -632,5 +630,5 @@ index 00000000..06ff19a8
 +	let "i++"
 +done
 -- 
-2.28.0
+2.31.0
 
