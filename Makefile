@@ -68,6 +68,12 @@ define run-create
 	./bootstrap
 endef
 
+define run-remove
+	git -C $(1) checkout -q master; \
+	git -C $(1) branch -q -D $(2); \
+	true
+endef
+
 help:
 	$(TRACE)
 	$(GREEN)
@@ -154,8 +160,8 @@ rcsmaster.clean rcs12.clean rcs.clean:
 	$(TRACE)
 	$(eval prefix=$(subst .clean,,$@))
 	$(Q)$(foreach repo, $(REPOS), \
-		git -C $(repo) checkout master; \
-		git -C $(repo) branch -D $(prefix); )
+		git -C $(repo) checkout -q master; \
+		git -C $(repo) branch -q -D $(prefix); )
 
 stable-2.10.checkout:
 	$(TRACE)
@@ -168,6 +174,13 @@ stable-2.10.checkout:
 
 stable-2.10.patch: stable-2.10.checkout
 
+stable-2.10.clean:
+	$(TRACE)
+	$(Q)$(call run-remove,userspace-rcu,stable-0.9)
+	$(Q)$(call run-remove,lttng-ust,stable-2.10)
+	$(Q)$(call run-remove,lttng-tools,stable-2.10)
+	$(Q)$(call run-remove,babeltrace,stable-1.5)
+
 stable-2.11.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,origin/stable-0.11,stable-0.11 )
@@ -179,6 +192,13 @@ stable-2.11.checkout:
 
 stable-2.11.patch: stable-2.11.checkout
 
+stable-2.11.clean:
+	$(TRACE)
+	$(Q)$(call run-remove,userspace-rcu,stable-0.11)
+	$(Q)$(call run-remove,lttng-ust,stable-2.11)
+	$(Q)$(call run-remove,lttng-tools,stable-2.11)
+	$(Q)$(call run-remove,babeltrace,stable-2.0)
+
 stable-2.12.checkout:
 	$(TRACE)
 	$(Q)$(call run-create,userspace-rcu,origin/stable-0.12,stable-0.12 )
@@ -189,6 +209,13 @@ stable-2.12.checkout:
 	$(Q)$(call create-builddir,stable-2.12)
 
 stable-2.12.patch: stable-2.12.checkout
+
+stable-2.12.clean:
+	$(TRACE)
+	$(Q)$(call run-remove,userspace-rcu,stable-0.12)
+	$(Q)$(call run-remove,lttng-ust,stable-2.12)
+	$(Q)$(call run-remove,lttng-tools,stable-2.12)
+	$(Q)$(call run-remove,babeltrace,stable-2.0)
 
 master.checkout:
 	$(TRACE)
