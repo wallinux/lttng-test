@@ -6,11 +6,15 @@ Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
 0001-tests-epoll_wait-missing-in-aarch64.patch
 0001-tmpfix-using-nroff-instead-of-man.patch
 0001-fix-test-regression-kernel-test_channel-missing-from.patch
+0001-testapp-gen-ust-events-augment-captured-fields.patch
+0001-testapp-gen-ust-events-added-help-and-sync-before-fi.patch
+0001-Fix-test-code-assumes-that-child-process-is-schedule.patch
 
 # axxiaarm & axxiaarm64
 Added-tests-for-ARM-CNTPCT-clock-plugin.patch
-Added-support-for-BFN-clock.patch
-Added-BFN-tests.patch
+# Skipping since noone is using it
+#Added-support-for-BFN-clock.patch
+#Added-BFN-tests.patch
 
 # axxiax86-64
 0001-Tests-add-missing-multilib-tracing-test.patch
