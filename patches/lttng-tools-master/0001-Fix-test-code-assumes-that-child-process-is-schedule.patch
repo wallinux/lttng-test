@@ -1,5 +1,5 @@
-From ed6cf7cd7a592fa55357e844710612e689fd5e59 Mon Sep 17 00:00:00 2001
-Message-Id: <ed6cf7cd7a592fa55357e844710612e689fd5e59.1617285925.git.wallinux@gmail.com>
+From 0f120a9f3fd617af4fd01cd590bfe0785ea68560 Mon Sep 17 00:00:00 2001
+Message-Id: <0f120a9f3fd617af4fd01cd590bfe0785ea68560.1617289465.git.wallinux@gmail.com>
 From: Anders Wallin <wallinux@gmail.com>
 Date: Wed, 31 Mar 2021 16:37:56 +0200
 Subject: [PATCH] Fix: test code assumes that child process is schedule to run
@@ -17,7 +17,7 @@ Signed-off-by: Anders Wallin <wallinux@gmail.com>
  1 file changed, 6 insertions(+), 9 deletions(-)
 
 diff --git a/tests/regression/tools/tracker/test_event_tracker b/tests/regression/tools/tracker/test_event_tracker
-index 711690af..ba92d455 100755
+index 711690af..78e9310b 100755
 --- a/tests/regression/tools/tracker/test_event_tracker
 +++ b/tests/regression/tools/tracker/test_event_tracker
 @@ -5,7 +5,7 @@
@@ -43,7 +43,7 @@ index 711690af..ba92d455 100755
  {
 -	AFTER_FIRST_PATH=$(mktemp -u)
 -	BEFORE_LAST_PATH=$(mktemp -u)
-+	BEFORE_FIRST_PATH==$(mktemp -u)
++	BEFORE_FIRST_PATH=$(mktemp -u)
  
 -	$TESTAPP_BIN -i $NR_ITER -w $NR_USEC_WAIT -a "$AFTER_FIRST_PATH" -b "$BEFORE_LAST_PATH" &
 +	$TESTAPP_BIN -i $NR_ITER -w $NR_USEC_WAIT --sync-before-first-event "$BEFORE_FIRST_PATH" &
