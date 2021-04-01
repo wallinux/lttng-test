@@ -5,7 +5,9 @@ Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
 Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
 0001-tests-epoll_wait-missing-in-aarch64.patch
 0001-tmpfix-using-nroff-instead-of-man.patch
-0001-fix-test-regression-kernel-test_channel-missing-from.patch
+0001-Fix-added-missing-test_channel-and-removed-double-de.patch
+0001-testapp-gen-ust-events-added-help-and-sync-before-fi.patch
+0001-Fix-test-code-assumes-that-child-process-is-schedule.patch
 
 # axxiaarm & axxiaarm64
 Added-tests-for-ARM-CNTPCT-clock-plugin.patch

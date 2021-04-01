@@ -1,5 +1,5 @@
-From d0659f2d2ef00c10524758d6b9806f2e11af7b8c Mon Sep 17 00:00:00 2001
-Message-Id: <d0659f2d2ef00c10524758d6b9806f2e11af7b8c.1616510298.git.wallinux@gmail.com>
+From 54bed84527bf269368143f61a9fec16d52db49ac Mon Sep 17 00:00:00 2001
+Message-Id: <54bed84527bf269368143f61a9fec16d52db49ac.1617281679.git.wallinux@gmail.com>
 From: Anders Wallin <anders.wallin@windriver.com>
 Date: Mon, 11 Jul 2016 15:54:44 +0200
 Subject: [PATCH] Added tests for ARM CNTPCT clock plugin
@@ -10,12 +10,12 @@ Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
 ---
  tests/Makefile.am                             |   4 +-
  tests/rcs_regression                          |   3 +
- tests/regression/kernel/Makefile.am           |   3 +-
+ tests/regression/kernel/Makefile.am           |   2 +
  tests/regression/kernel/test_clock_arm_cntpct | 184 ++++++++++++++++++
  tests/regression/kernel/test_clock_timestamp  | 173 ++++++++++++++++
  .../regression/ust/clock-override/Makefile.am |   6 +-
  .../ust/clock-override/test_clock_arm_cntpct  | 171 ++++++++++++++++
- 7 files changed, 538 insertions(+), 6 deletions(-)
+ 7 files changed, 538 insertions(+), 5 deletions(-)
  create mode 100644 tests/rcs_regression
  create mode 100755 tests/regression/kernel/test_clock_arm_cntpct
  create mode 100755 tests/regression/kernel/test_clock_timestamp
@@ -46,19 +46,19 @@ index 00000000..56a4ee27
 +regression/kernel/test_clock_arm_cntpct
 +regression/ust/clock-override/test_clock_arm_cntpct
 diff --git a/tests/regression/kernel/Makefile.am b/tests/regression/kernel/Makefile.am
-index 8547efd6..956cee2c 100644
+index 040b7642..43849807 100644
 --- a/tests/regression/kernel/Makefile.am
 +++ b/tests/regression/kernel/Makefile.am
-@@ -5,7 +5,8 @@ EXTRA_DIST = test_event_basic test_all_events test_syscall \
- 		test_select_poll_epoll test_lttng_logger \
- 		test_userspace_probe test_callstack \
- 		test_syscall validate_select_poll_epoll.py \
--		test_ns_contexts test_ns_contexts_change
-+		test_ns_contexts test_ns_contexts_change \
-+		test_clock_arm_cntpct test_clock_timestamp
- 
- noinst_PROGRAMS = select_poll_epoll
- select_poll_epoll_SOURCES = select_poll_epoll.c
+@@ -4,7 +4,9 @@
+ EXTRA_DIST = test_all_events \
+ 						 test_callstack \
+ 						 test_channel \
++						 test_clock_arm_cntpct \
+ 						 test_clock_override \
++						 test_clock_timestamp \
+ 						 test_event_basic \
+ 						 test_kernel_function \
+ 						 test_lttng_logger \
 diff --git a/tests/regression/kernel/test_clock_arm_cntpct b/tests/regression/kernel/test_clock_arm_cntpct
 new file mode 100755
 index 00000000..555f33fd
@@ -630,5 +630,5 @@ index 00000000..9d0be36e
 +	let "i++"
 +done
 -- 
-2.31.0
+2.31.1
 
