@@ -4,19 +4,25 @@
 # branch=$3
 
 pkg=$1-${2#"v"}
-echo -e "\nPatching $1, $pkg"
+worktree=$1/worktree/$3
 
-git -C $1 reset --hard $2 >/dev/null
+if [ -e patches/$pkg/patches ]; then
+    echo -e "\nPatching $worktree, $pkg"
 
-patches=$(grep -v "^#" patches/$pkg/patches)
-for patch in $patches; do
-    echo -e " --- $patch"
-    git -C $1 am -q -3 $PWD/patches/$pkg/$patch
-    if [ $? -ne 0 ]; then
-	git -C $1 am --abort
-	echo "FAILED: git -C $1 am -q -3 $PWD/patches/$pkg/$patch"
-	exit
-    fi
-done
+    git -C $worktree reset --hard $2 >/dev/null
 
-git -C $1 tag -f v_${3} >/dev/null
+    patches=$(grep -v "^#" patches/$pkg/patches)
+    for patch in $patches; do
+	echo -e " --- $patch"
+	git -C $worktree am -q -3 $PWD/patches/$pkg/$patch
+	if [ $? -ne 0 ]; then
+	    git -C $worktree am --abort
+	    echo "FAILED: git -C $1 am -q -3 $PWD/patches/$pkg/$patch"
+	    exit
+	fi
+    done
+
+    git -C $worktree tag -f v_${3} >/dev/null
+else
+    echo -e "\nNo patches for $worktree, $pkg"
+fi
