@@ -140,23 +140,27 @@ rcs12.patch: rcs12.checkout
 	$(PATCH) babeltrace $(RCS12_BABELTRACE_VER) rcs12
 	$(MAKE) repo.bls
 
-rcsmaster.checkout:
+RCS13_LIBURCU_VER=v0.12.2
+RCS13_LTTNGUST_VER=v2.13.0-rc1
+RCS13_LTTNGTOOLS_VER=v2.13.0-rc1
+RCS13_BABELTRACE_VER=v2.0.4
+rcs13.checkout:
 	$(TRACE)
-	$(Q)$(call run-create,userspace-rcu,origin/master,rcsmaster)
-	$(Q)$(call run-create,lttng-ust,origin/master,rcsmaster)
-	$(Q)$(call run-create,lttng-tools,origin/master,rcsmaster)
-	$(Q)$(call run-create,babeltrace,origin/master,rcsmaster)
-	$(Q)$(call create-builddir,rcsmaster)
+	$(Q)$(call run-create,userspace-rcu,$(RCS13_LIBURCU_VER),rcs13)
+	$(Q)$(call run-create,lttng-ust,$(RCS13_LTTNGUST_VER),rcs13)
+	$(Q)$(call run-create,lttng-tools,$(RCS13_LTTNGTOOLS_VER),rcs13)
+	$(Q)$(call run-create,babeltrace,$(RCS13_BABELTRACE_VER),rcs13)
+	$(Q)$(call create-builddir,rcs13)
 
-rcsmaster.patch: rcsmaster.checkout
+rcs13.patch: rcs13.checkout
 	$(TRACE)
-	$(PATCH) userspace-rcu master rcsmaster
-	$(PATCH) lttng-ust master rcsmaster
-	$(PATCH) lttng-tools master rcsmaster
-	$(PATCH) babeltrace master rcsmaster
+	$(PATCH) userspace-rcu $(RCS13_LIBURCU_VER) rcs13
+	$(PATCH) lttng-ust $(RCS13_LTTNGUST_VER) rcs13
+	$(PATCH) lttng-tools $(RCS13_LTTNGTOOLS_VER) rcs13
+	$(PATCH) babeltrace $(RCS13_BABELTRACE_VER) rcs13
 	$(MAKE) repo.bls
 
-rcsmaster.clean rcs12.clean rcs.clean:
+rcs.clean rcs12.clean rcs13.clean:
 	$(TRACE)
 	$(eval prefix=$(subst .clean,,$@))
 	$(Q)$(foreach repo, $(REPOS), \
@@ -215,6 +219,24 @@ stable-2.12.clean:
 	$(Q)$(call run-remove,userspace-rcu,stable-0.12)
 	$(Q)$(call run-remove,lttng-ust,stable-2.12)
 	$(Q)$(call run-remove,lttng-tools,stable-2.12)
+	$(Q)$(call run-remove,babeltrace,stable-2.0)
+
+stable-2.13.checkout:
+	$(TRACE)
+	$(Q)$(call run-create,userspace-rcu,origin/stable-0.12,stable-0.12 )
+	$(Q)$(call run-create,lttng-ust,origin/stable-2.13,stable-2.13 )
+	$(Q)$(call run-create,lttng-tools,origin/stable-2.13,stable-2.13 )
+	$(Q)$(call run-create,babeltrace,origin/stable-2.0,stable-2.0 )
+	$(MAKE) repo.pull repo.bls
+	$(Q)$(call create-builddir,stable-2.13)
+
+stable-2.13.patch: stable-2.13.checkout
+
+stable-2.13.clean:
+	$(TRACE)
+	$(Q)$(call run-remove,userspace-rcu,stable-0.12)
+	$(Q)$(call run-remove,lttng-ust,stable-2.13)
+	$(Q)$(call run-remove,lttng-tools,stable-2.13)
 	$(Q)$(call run-remove,babeltrace,stable-2.0)
 
 master.checkout:
