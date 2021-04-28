@@ -3,8 +3,10 @@
 # tag=$2
 # branch=$3
 
+srcdir=$(pwd)/out/src
+
 pkg=$1-${2#"v"}
-worktree=$1/worktree/$3
+worktree=$srcdir/$1/worktree/$3
 
 if [ -e patches/$pkg/patches ]; then
     echo -e "\nPatching $worktree, $pkg"

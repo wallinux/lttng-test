@@ -52,7 +52,7 @@ CONF_OPTION_lttng-ust		?= $(CONF_PREFIX) --disable-man-pages
 CONF_OPTION_lttng-tools		?= $(CONF_PREFIX) --with-lttng-ust --enable-man-pages --enable-embedded-help
 CONF_OPTION_babeltrace		?= $(CONF_PREFIX)
 
-OUTDIR		= $(TOP)
+OUTDIR		= $(TOP)/out
 SRCDIR		= $(OUTDIR)/src
 BUILDDIR	= $(OUTDIR)/build
 INSTALLDIR	= $(OUTDIR)/install
@@ -68,12 +68,16 @@ help::
 	$(Q)grep -e ": " -e ":$$"  Makefile | grep -v grep | cut -d ':' -f 1 | tr ' ' '\n' | sort
 	$(NORMAL)
 
-$(REPOS):
-	$(Q)git clone $(REPO_$@)
+$(SRCDIR):
+	$(TRACE)
+	$(MKDIR) $@
+
+$(REPOS): $(SRCDIR)
+	$(Q)cd $<; git clone $(REPO_$@)
 
 update repo.pull:
 	$(TRACE)
-	$(Q)$(foreach repo,$(REPOS),make $(repo); git -C $(repo) pull; )
+	$(Q)$(foreach repo,$(REPOS),make $(repo); git -C $(SRCDIR)/$(repo) pull; )
 
 configure.%:
 	$(TRACE)
