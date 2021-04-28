@@ -5,12 +5,13 @@ TOP = $(shell pwd)
 
 # Define V=1 to echo everything
 ifneq ($(V),1)
-Q=@
+export Q=@
+export SILENT=-s
 endif
 
 CD	= $(Q)cd
 RM	= $(Q)rm -f
-MAKE	= $(Q)make
+MAKE	= $(Q)make $(SILENT)
 MKDIR	= $(Q)mkdir -p
 ECHO	= $(Q)echo
 RED	= $(Q)tput setaf 1
@@ -19,10 +20,13 @@ NORMAL	= $(Q)tput sgr0
 TRACE	= $(Q)tput setaf 1; echo ------ $@; tput sgr0
 
 ifneq ($(UID),0)
-SUDOMAKE= $(Q)sudo make
+ SUDOMAKE = $(Q)sudo make $(SILENT)
+ SUDO	  = $(Q)sudo
 else
-SUDOMAKE= $(MAKE)
+ SUDOMAKE = $(MAKE)
+ SUDO     =
 endif
+
 PATCH	= $(Q)$(TOP)/patch-lttng
 
 STAMPDIR = $(TOP)/.stamps
@@ -42,13 +46,18 @@ REPOS		+= lttng-tools
 REPOS		+= babeltrace
 REPOS		+= $(EXTRA_REPOS)
 
-CONF_PREFIX			?= --prefix=/usr
+CONF_PREFIX			?= --prefix=$(INSTALLDIR)/$(branch)/usr
 CONF_OPTION_userspace-rcu	?= $(CONF_PREFIX)
 CONF_OPTION_lttng-ust		?= $(CONF_PREFIX) --disable-man-pages
 CONF_OPTION_lttng-tools		?= $(CONF_PREFIX) --with-lttng-ust --enable-man-pages --enable-embedded-help
 CONF_OPTION_babeltrace		?= $(CONF_PREFIX)
 
-BUILDDIR	= $(TOP)/build
+OUTDIR		= $(TOP)
+SRCDIR		= $(OUTDIR)/src
+BUILDDIR	= $(OUTDIR)/build
+INSTALLDIR	= $(OUTDIR)/install
+
+branch		?= none
 
 TARGET=$(eval target=$(subst .$*,,$@))
 
@@ -69,49 +78,43 @@ update repo.pull:
 configure.%:
 	$(TRACE)
 	$(TARGET)
-	$(ECHO) builddir=$(KALLEDIR) 
-	$(CD) $(BUILDDIR)/$*; $(TOP)/$*/$(target) $(CONF_OPTION_$*)
+	$(MKDIR) $(BUILDDIR)/$(branch)/$*
+	$(CD) $(BUILDDIR)/$(branch)/$*; $(TOP)/$*/worktree/$(branch)/$(target) $(CONF_OPTION_$*)
 
-rcs10.%: export KALLEDI=$(BUILDDIR)/rcs10
-rcs10.%:
+unconfigure.%:
 	$(TRACE)
-	$(MAKE) $*
+	$(TARGET)
+	$(RM) -r $(BUILDDIR)/$(branch)/$*
 
 all.%:
 	$(TRACE)
 	$(TARGET)
-	$(MAKE) configure.$*
-	$(MAKE) -C $(BUILDDIR)/$* $(target)
+	$(Q)if [ ! -e $(BUILDDIR)/$(branch)/$*/config.status ]; then make configure.$*; fi
+	$(MAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
 
 install.%:
 	$(TRACE)
 	$(TARGET)
 	$(MAKE) all.$*
-	$(SUDOMAKE) -C $(BUILDDIR)/$* $(target)
+	$(SUDOMAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
+	$(MAKE) env.$*
 
 uninstall.%:
 	$(TRACE)
 	$(TARGET)
-	$(SUDOMAKE) -C $(BUILDDIR)/$* $(target)
+	$(SUDOMAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
 
 distclean.%:
 	$(TRACE)
 	$(TARGET)
-	$(Q)if [ -e $(BUILDDIR)/$*/Makefile ]; then \
-		make uninstall.$*; \
-		make -C $(BUILDDIR)/$* $(target); \
-		rm -rf $(BUILDDIR)/$*/*; \
-	else \
-		echo $(target) not configured; \
-	fi
+	$(SUDO) rm -rf $(INSTALLDIR)/$(branch)/*
+	$(RM) -r $(BUILDDIR)/$(branch)/*/*
 
 clean.% TAGS.% CTAGS.% distclean-tags.%:
 	$(TRACE)
 	$(TARGET)
-	$(Q)if [ -e $(BUILDDIR)/$*/Makefile ]; then \
-		make -C $(BUILDDIR)/$* $(target); \
-	else \
-		echo $(target) not configured; \
+	$(Q)if [ -e $(BUILDDIR)/$(branch)/$*/Makefile ]; then \
+		make -C $(BUILDDIR)/$(branch)/$* $(target); \
 	fi
 
 fast_regression.lttng-tools root_regression.lttng-tools:
@@ -126,15 +129,24 @@ userspace_regression.lttng-tools:
 
 test.lttng-tools: userspace_regression.lttng-tools
 
-DISTCLEAN.%:
+DISTCLEAN:
 	$(TRACE)
-	$(RM) -r $*
+	$(SUDO) rm -rf $(INSTALLDIR)
 	$(RM) -r $(BUILDDIR)
+	$(RM) -r $(SRCDIR)
 
-all configure install distclean uninstall clean TAGS CTAGS DISTCLEAN distclean-tags:
+env:
 	$(TRACE)
-	$(Q)$(foreach repo, $(REPOS), make $@.$(repo); )
+	$(ECHO) LD_LIBRARY_PATH=$(INSTALLDIR)/$(branch)/usr/lib > $(OUTDIR)/$(branch).env
+	$(ECHO) PATH=$(INSTALLDIR)/$(branch)/usr/bin:$$PATH >> $(OUTDIR)/$(branch).env
+
+all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags:
+	$(TRACE)
+	$(ECHO) "BRANCH=$(branch)"
+	$(Q)$(foreach repo,$(REPOS),make $@.$(repo);)
 
 ALL: install
+
+.PHONY: install configure all clean distclean
 
 include rcs.mk

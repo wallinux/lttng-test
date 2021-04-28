@@ -67,9 +67,23 @@ stable-2.13_lttngtools=origin/stable-2.13
 stable-2.13_babeltrace=origin/stable-2.0
 branches += stable-2.13
 
+rcs10.%: export branch=rcs10
+rcs10.%:
+	$(TRACE)
+	$(MAKE) $*
+
+rcs12.%: export branch=rcs12
+rcs12.%:
+	$(TRACE)
+	$(MAKE) $*
+
+rcs13.%: export branch=rcs13
+rcs13.%:
+	$(TRACE)
+	$(MAKE) $*
+
 stable-2.10.add stable-2.12.add stable-2.13.add rcs10.add rcs12.add rcs13.add:
 	$(TRACE)
-	$(eval branch=$(subst .add,,$@))
 	$(Q)$(call run-worktree-add,userspace-rcu,$($(branch)_liburcu),$(branch))
 	$(Q)$(call run-worktree-add,lttng-ust,$($(branch)_lttngust),$(branch))
 	$(Q)$(call run-worktree-add,lttng-tools,$($(branch)_lttngtools),$(branch))
@@ -77,7 +91,6 @@ stable-2.10.add stable-2.12.add stable-2.13.add rcs10.add rcs12.add rcs13.add:
 
 stable-2.10.patch stable-2.12.patch stable-2.13.patch rcs10.patch rcs12.patch rcs13.patch:
 	$(TRACE)
-	$(eval branch=$(subst .patch,,$@))
 	$(MAKE) $(branch).add
 	$(PATCH) userspace-rcu $($(branch)_liburcu) $(branch)
 	$(PATCH) lttng-ust $($(branch)_lttngust) $(branch)
@@ -87,7 +100,6 @@ stable-2.10.patch stable-2.12.patch stable-2.13.patch rcs10.patch rcs12.patch rc
 
 stable-2.10.remove stable-2.12.remove stable-2.13.remove rcs10.remove rcs12.remove rcs13.remove:
 	$(TRACE)
-	$(eval branch=$(subst .remove,,$@))
 	$(Q)$(call run-worktree-remove,userspace-rcu,$(branch))
 	$(Q)$(call run-worktree-remove,lttng-ust,$(branch))
 	$(Q)$(call run-worktree-remove,lttng-tools,$(branch))
@@ -95,13 +107,16 @@ stable-2.10.remove stable-2.12.remove stable-2.13.remove rcs10.remove rcs12.remo
 
 stable-2.10.bls stable-2.12.bls stable-2.13.bls rcs10.bls rcs12.bls rcs13.bls:
 	$(TRACE)
-	$(eval branch=$(subst .bls,,$@))
 	$(Q)$(foreach repo, $(REPOS), \
 		echo -e "\n--- $(repo) ---"; \
 		git -C $(repo) branch | grep $(branch); \
 		git -C $(repo) log $(branch) -1 --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative; \
 		git -C $(repo) describe --abbrev=0 --tags $(branch); \
 	)
+
+
+#########################################################
+# FIXME - mv master to the same as the other branches
 
 master.patch master.add:
 	$(TRACE)
@@ -123,6 +138,7 @@ master.bls:
 master.remove:
 	$(TRACE)
 	$(RM) -r $(BUILDDIR)/master/*
+#########################################################
 
 help::
 	$(GREEN)
