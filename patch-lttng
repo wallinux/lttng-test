@@ -3,6 +3,8 @@
 # tag=$2
 # branch=$3
 
+#echo "---- patch-lttng $1, $2, $3"
+
 srcdir=$(pwd)/out/src
 
 pkg=$1-${2#"v"}

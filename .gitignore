@@ -1,9 +1,4 @@
-babeltrace
-lttng-tools
-lttng-ust
-userspace-rcu
-lttngtop
-lttng-modules
+out
 .stamps
 kernel_builddir
 linux-2.6

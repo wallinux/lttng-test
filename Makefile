@@ -6,7 +6,7 @@ TOP = $(shell pwd)
 # Define V=1 to echo everything
 ifneq ($(V),1)
 export Q=@
-export SILENT=-s
+export SILENT=--no-print-directory
 endif
 
 CD	= $(Q)cd
@@ -26,8 +26,6 @@ else
  SUDOMAKE = $(MAKE)
  SUDO     =
 endif
-
-PATCH	= $(Q)$(TOP)/patch-lttng
 
 STAMPDIR = $(TOP)/.stamps
 vpath % $(STAMPDIR)
@@ -72,12 +70,19 @@ $(SRCDIR):
 	$(TRACE)
 	$(MKDIR) $@
 
-$(REPOS): $(SRCDIR)
-	$(Q)cd $<; git clone $(REPO_$@)
-
-update repo.pull:
+$(foreach repo,$(REPOS),$(SRCDIR)/$(repo) ): | $(SRCDIR)
 	$(TRACE)
-	$(Q)$(foreach repo,$(REPOS),make $(repo); git -C $(SRCDIR)/$(repo) pull; )
+	$(eval repo=$(notdir $@))
+	$(CD) $<; git clone $(REPO_$(repo))
+
+$(REPOS):
+	$(TRACE)
+	$(MAKE) $(SRCDIR)/$@
+
+update.%:
+	$(TRACE)
+	$(MAKE) $*
+	$(Q)git -C $(SRCDIR)/$* pull;
 
 configure.%:
 	$(TRACE)
@@ -93,7 +98,7 @@ unconfigure.%:
 all.%:
 	$(TRACE)
 	$(TARGET)
-	$(Q)if [ ! -e $(BUILDDIR)/$(branch)/$*/config.status ]; then make configure.$*; fi
+	$(Q)if [ ! -e $(BUILDDIR)/$(branch)/$*/config.status ]; then make $(SILENT) configure.$*; fi
 	$(MAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
 
 install.%:
@@ -118,9 +123,11 @@ clean.% TAGS.% CTAGS.% distclean-tags.%:
 	$(TRACE)
 	$(TARGET)
 	$(Q)if [ -e $(BUILDDIR)/$(branch)/$*/Makefile ]; then \
-		make -C $(BUILDDIR)/$(branch)/$* $(target); \
+		make $(SILENT) -C $(BUILDDIR)/$(branch)/$* $(target); \
 	fi
 
+#################################################################
+# test
 fast_regression.lttng-tools root_regression.lttng-tools:
 	$(TRACE)
 	$(eval target=$(subst .lttng-tools,,$@))
@@ -133,6 +140,9 @@ userspace_regression.lttng-tools:
 
 test.lttng-tools: userspace_regression.lttng-tools
 
+#################################################################
+# global
+
 DISTCLEAN:
 	$(TRACE)
 	$(SUDO) rm -rf $(INSTALLDIR)
@@ -144,13 +154,14 @@ env:
 	$(ECHO) LD_LIBRARY_PATH=$(INSTALLDIR)/$(branch)/usr/lib > $(OUTDIR)/$(branch).env
 	$(ECHO) PATH=$(INSTALLDIR)/$(branch)/usr/bin:$$PATH >> $(OUTDIR)/$(branch).env
 
-all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags:
+all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree:
 	$(TRACE)
 	$(ECHO) "BRANCH=$(branch)"
-	$(Q)$(foreach repo,$(REPOS),make $@.$(repo);)
+	$(Q)$(foreach repo,$(REPOS),make $(SILENT) $@.$(repo);)
 
 ALL: install
 
 .PHONY: install configure all clean distclean
 
+# FIXME rename
 include rcs.mk
