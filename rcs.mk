@@ -128,13 +128,20 @@ stable-2.10.bls stable-2.12.bls stable-2.13.bls rcs10.bls rcs12.bls rcs13.bls rc
 			git -C $(SRCDIR)/$(repo) describe --abbrev=0 --tags $(branch); \
 		fi; \
 	)
-################################################
+############################################################################
+
+rcs10 rcs12 rcs13 rcsmaster stable-2.10 stable-2.12 stable-2.13:
+	$(TRACE)
+	$(MAKE) update
+	$(MAKE) $@.patch_worktree
+	$(MAKE) $@.install
+
+ALL:
+	$(TRACE)
+	$(Q)$(foreach branch, $(branches), make $(branch); )
 
 help::
 	$(GREEN)
 	$(Q)grep -e ": " -e ":$$"  rcs.mk | grep -v grep | cut -d ':' -f 1 | tr ' ' '\n' | sort
 	$(NORMAL)
 
-add patch bls remove:
-	$(TRACE)
-	$(Q)$(foreach branch, $(branches), make $(branch).$@; )

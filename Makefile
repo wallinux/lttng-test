@@ -55,7 +55,7 @@ SRCDIR		= $(OUTDIR)/src
 BUILDDIR	= $(OUTDIR)/build
 INSTALLDIR	= $(OUTDIR)/install
 
-branch		?= none
+branch		?= rcsmaster
 
 TARGET=$(eval target=$(subst .$*,,$@))
 
@@ -88,12 +88,7 @@ configure.%:
 	$(TRACE)
 	$(TARGET)
 	$(MKDIR) $(BUILDDIR)/$(branch)/$*
-	$(CD) $(BUILDDIR)/$(branch)/$*; $(TOP)/$*/worktree/$(branch)/$(target) $(CONF_OPTION_$*)
-
-unconfigure.%:
-	$(TRACE)
-	$(TARGET)
-	$(RM) -r $(BUILDDIR)/$(branch)/$*
+	$(CD) $(BUILDDIR)/$(branch)/$*; $(SRCDIR)/$*/worktree/$(branch)/$(target) $(CONF_OPTION_$*)
 
 all.%:
 	$(TRACE)
@@ -106,7 +101,7 @@ install.%:
 	$(TARGET)
 	$(MAKE) all.$*
 	$(SUDOMAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
-	$(MAKE) env.$*
+	$(MAKE) env
 
 uninstall.%:
 	$(TRACE)
