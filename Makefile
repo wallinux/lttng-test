@@ -1,35 +1,9 @@
-SHELL=/bin/bash
 
-UID = $(shell id -u)
-TOP = $(shell pwd)
+include common.mk
 
-# Define V=1 to echo everything
-ifneq ($(V),1)
-export Q=@
-export SILENT=--no-print-directory
-endif
+default: help
 
-CD	= $(Q)cd
-RM	= $(Q)rm -f
-MAKE	= $(Q)make $(SILENT)
-MKDIR	= $(Q)mkdir -p
-ECHO	= $(Q)echo
-RED	= $(Q)tput setaf 1
-GREEN	= $(Q)tput setaf 2
-NORMAL	= $(Q)tput sgr0
-TRACE	= $(Q)tput setaf 1; echo ------ $@; tput sgr0
-
-ifneq ($(UID),0)
- SUDOMAKE = $(Q)sudo make $(SILENT)
- SUDO	  = $(Q)sudo
-else
- SUDOMAKE = $(MAKE)
- SUDO     =
-endif
-
-STAMPDIR = $(TOP)/.stamps
-vpath % $(STAMPDIR)
-MKSTAMP = $(Q)mkdir -p $(STAMPDIR) ; touch $(STAMPDIR)/$@
+include docker.mk
 
 REPO_userspace-rcu = git://git.liburcu.org/userspace-rcu.git
 REPO_lttng-ust     = git://git.lttng.org/lttng-ust.git
@@ -37,11 +11,12 @@ REPO_lttng-tools   = git://git.lttng.org/lttng-tools.git
 REPO_babeltrace    = https://git.efficios.com/babeltrace.git
 REPO_lttng-modules = git://git.lttng.org/lttng-modules.git/
 
-#EXTRA_REPOS	?= lttng-modules
 REPOS		+= userspace-rcu
 REPOS		+= lttng-ust
 REPOS		+= lttng-tools
 REPOS		+= babeltrace
+
+#EXTRA_REPOS	?= lttng-modules
 REPOS		+= $(EXTRA_REPOS)
 
 CONF_PREFIX			?= --prefix=$(INSTALLDIR)/$(branch)/usr
@@ -55,16 +30,28 @@ SRCDIR		= $(OUTDIR)/src
 BUILDDIR	= $(OUTDIR)/build
 INSTALLDIR	= $(OUTDIR)/install
 
-branch		?= rcsmaster
-
-TARGET=$(eval target=$(subst .$*,,$@))
+PATCH		= $(Q)$(TOP)/patch-lttng
+TARGET		= $(eval target=$(subst .$*,,$@))
 
 ####################################################################################
 
-help::
-	$(GREEN)
-	$(Q)grep -e ": " -e ":$$"  Makefile | grep -v grep | cut -d ':' -f 1 | tr ' ' '\n' | sort
-	$(NORMAL)
+define run-worktree-add
+	echo -e "\n---- adding $(SRCDIR)/$(1)/worktree/$(3) $(2)"; \
+	git -C $(SRCDIR)/$(1) worktree add -b $(3) worktree/$(3) $(2) 2>/dev/null; \
+	if [ $$? -eq 0 ]; then \
+	    mkdir -p $(BUILDDIR)/$(3)/$(1); \
+	    (cd $(SRCDIR)/$(1)/worktree/$(3); ./bootstrap;) \
+	fi
+endef
+
+define run-worktree-remove
+	echo -e "\n---- removing worktree/$(2)"; \
+	git -C $(SRCDIR)/$(1) worktree remove --force worktree/$(2) 2> /dev/null; \
+	git -C $(SRCDIR)/$(1) branch -q -D $(2) 2> /dev/null; \
+	rm -rf $(BUILDDIR)/$(2)/$(1)
+endef
+
+####################################################################################
 
 $(SRCDIR):
 	$(TRACE)
@@ -75,14 +62,36 @@ $(foreach repo,$(REPOS),$(SRCDIR)/$(repo) ): | $(SRCDIR)
 	$(eval repo=$(notdir $@))
 	$(CD) $<; git clone $(REPO_$(repo))
 
-$(REPOS):
+$(REPOS): # clone repos
 	$(TRACE)
 	$(MAKE) $(SRCDIR)/$@
 
-update.%:
+update.%: # update repos
 	$(TRACE)
 	$(MAKE) $*
 	$(Q)git -C $(SRCDIR)/$* pull;
+
+add_worktree.%:
+	$(TRACE)
+	$(Q)$(call run-worktree-add,$*,$($(branch)_$*),$(branch))
+
+patch_worktree.%:
+	$(TRACE)
+	$(MAKE) add_worktree.$*
+	$(PATCH) $* $($(branch)_$*) $(branch);
+
+remove_worktree.%:
+	$(TRACE)
+	$(Q)$(call run-worktree-remove,$(*),$(branch))
+
+bls.%:
+	$(TRACE)
+	$(eval srcdir=$(SRCDIR)/$*)
+	$(ECHO) -e "\n--- $(branch) $* ---"; \
+	if [ -d $(srcdir)/worktree/$(branch) ]; then \
+		git -C $(srcdir) log $(branch) -1 --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative; \
+		git -C $(srcdir) describe --abbrev=0 --tags $(branch); \
+	fi
 
 configure.%:
 	$(TRACE)
@@ -101,7 +110,7 @@ install.%:
 	$(TARGET)
 	$(MAKE) all.$*
 	$(SUDOMAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
-	$(MAKE) env
+	$(MAKE) env.$(branch)
 
 uninstall.%:
 	$(TRACE)
@@ -121,6 +130,11 @@ clean.% TAGS.% CTAGS.% distclean-tags.%:
 		make $(SILENT) -C $(BUILDDIR)/$(branch)/$* $(target); \
 	fi
 
+env.%:
+	$(TRACE)
+	$(ECHO) LD_LIBRARY_PATH=$(INSTALLDIR)/$*/usr/lib > $(OUTDIR)/$*.env
+	$(ECHO) PATH=$(INSTALLDIR)/$*/usr/bin:$$PATH >> $(OUTDIR)/$*.env
+
 #################################################################
 # test
 fast_regression.lttng-tools root_regression.lttng-tools:
@@ -133,30 +147,28 @@ userspace_regression.lttng-tools:
 	$(eval target=$(subst .lttng-tools,,$@))
 	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh $(TOP)/$(target) |& tee $(target).out
 
-test.lttng-tools: userspace_regression.lttng-tools
+test.lttng-tools: userspace_regression.lttng-tools # run lttng-tools tests
 
 #################################################################
 # global
+
+Makefile.help:
+	$(call run-help, Makefile)
+	$(call run-note, "- REPOS   = $(REPOS)")
+
+help:: Makefile.help
 
 DISTCLEAN:
 	$(TRACE)
 	$(SUDO) rm -rf $(INSTALLDIR)
 	$(RM) -r $(BUILDDIR)
 	$(RM) -r $(SRCDIR)
+	$(RM) -r $(OUTDIR)
 
-env:
+all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls:
 	$(TRACE)
-	$(ECHO) LD_LIBRARY_PATH=$(INSTALLDIR)/$(branch)/usr/lib > $(OUTDIR)/$(branch).env
-	$(ECHO) PATH=$(INSTALLDIR)/$(branch)/usr/bin:$$PATH >> $(OUTDIR)/$(branch).env
-
-all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree:
-	$(TRACE)
-	$(ECHO) "BRANCH=$(branch)"
 	$(Q)$(foreach repo,$(REPOS),make $(SILENT) $@.$(repo);)
 
-ALL: install
+.PHONY: help DISTCLEAN all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls
 
-.PHONY: install configure all clean distclean
-
-# FIXME rename
-include rcs.mk
+include branches.mk

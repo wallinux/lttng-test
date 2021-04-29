@@ -1,0 +1,101 @@
+[core]
+	editor = emacs
+	excludesfile = ~/.gitignore
+	quotepath = false
+
+[user]
+	name = Anders Wallin
+	email = wallinux@gmail.com
+#	email = anders.wallin@windriver.com
+#	signingkey = 2BF762A4656A748C
+
+[alias]
+	amend	   = commit --amend
+	amendq	   = commit --amend --no-edit
+	awmail     = send-email --to=wr.wallinux@gmail.com --cc wallinux@gmail.com
+	bll        = branch -a
+	bls        = branch
+	checkpatch = !(cd $(git root) && git diff | ./scripts/checkpatch.pl --strict --no-signoff -)
+	co         = checkout
+	cp         = cherry-pick
+	diffstat   = diff --stat -r
+	export	   = !(DIR=$(basename $PWD) && git archive --format=tar.gz --prefix=$DIR/ -o ../$DIR.tgz HEAD)
+	exportb	   = !(DIR=$(basename $PWD) && BRANCH=$(git rev-parse --abbrev-ref HEAD) && git archive --format=tar.gz --prefix=$DIR/$BRANCH/ -o ../$DIR-$BRANCH.tgz HEAD)
+	exportrepo = !(DIR=$(basename $PWD) && git bundle create ../$DIR.bundle HEAD)
+	fp         = format-patch -s -n --thread -o patches/
+	fp1        = format-patch -N --thread -1
+	hreset     = reset --hard HEAD^
+	law 	   = log --pretty=format:'%h %s' --abbrev-commit --date=relative
+	lg 	   = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+	logstat    = log --stat
+	lttngmail  = send-email --suppress-cc=self --to=lttng-dev@lists.lttng.org
+	oecoremail = send-email --to=openembedded-core@lists.openembedded.org --confirm=always -M -1  --subject-prefix="OE-core][PATCH"
+	testoecoremail = send-email --to=wallinux@gmail.com --confirm=always -M -1 --subject-prefix="OE-core][PATCH"
+	lver 	   = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+	ptestrunnermail = send-email --to yocto@yoctoproject.org --cc anibal.limon@linux.intel.com
+	rmb        = branch -D
+	root 	   = !pwd
+	sign	   = commit -s --amend --no-edit
+	sync	   = !(git fetch && git rebase origin/master)
+	wc	   = whatchanged
+#	kernelmail = send-email --no-signed-off-by-cc
+#	lpdmail    = send-email --no-signed-off-by-cc --to=lpd-eng-osc@windriver.com --annotate
+
+[diff]
+	renamelimit = 0
+	tool = meld
+
+#[sendemail]
+#	suppresscc = all
+#	confirm=always
+#	chainreplyto = false
+# 	from = "Anders Wallin <Anders.Wallin@windriver.com>"
+#	smtpserver = smtp-eu.wrs.com
+
+[sendemail]
+    	smtpEncryption = tls
+    	smtpServer = smtp.gmail.com
+    	smtpUser = wallinux@gmail.com
+    	smtpServerPort = 587
+#	suppresscc = all
+
+[color]
+	ui = auto
+[merge]
+	tool = meld
+[wrgit]
+	username = awallin
+	autoupdate = true
+[gui]
+	editor = emacs
+
+[push]
+	default = upstream
+
+[cola]
+	savewindowsettings = false
+	textwidth = 80
+	spellcheck = true
+[imap]
+	host = imaps://imap.gmail.com
+	user = wallinux@gmail.com
+	port = 993
+	sslverify = false
+	folder = [Gmail]/Drafts
+[credential]
+	helper = store
+
+[commit]
+#	gpgsign = true
+
+[gpg]
+#	program = gpg
+[pull]
+	rebase = false
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[init]
+	defaultBranch = main

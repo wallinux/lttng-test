@@ -1,0 +1,32 @@
+FROM ubuntu:20.04
+LABEL maintainer="anders.wallin@windriver.com"
+
+WORKDIR /root
+
+ENV TERM xterm
+ENV DEBIAN_FRONTEND noninteractive
+
+ADD .gitconfig /root/.gitconfig
+
+# Preparing packages needed by lttng 
+RUN apt-get update
+RUN apt-get install -y apt-utils
+
+# userspace-rcu
+RUN apt-get install -y gcc autoconf automake libtool bash
+
+# babeltrace
+RUN apt-get install -y gcc autoconf automake libtool bison libc6 libglib2.0-dev python3-dev libdw-dev libelf-dev asciidoc doxygen python3-sphinx
+RUN apt-get remove -y libbabeltrace1
+
+# lttng-ust
+RUN apt-get install -y gcc autoconf automake libtool pkg-config asciidoc xmlto perl
+
+# lttng-tools
+RUN apt-get install -y autoconf automake libtool libpopt-dev libxml2-dev swig libpfm4-dev bash
+
+# rcs
+RUN apt-get install -y make git groff tzdata
+#RUN apt-get install -y  flex python3-pip kmod libnuma-dev psmisc
+
+ENTRYPOINT ["/bin/bash"]
