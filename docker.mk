@@ -82,10 +82,6 @@ docker.make: docker.preparemake
 	$(TRACE)
 	$(call run-docker-exec, -it, sh -c "make -C docker-test install")
 
-docker.test: docker.start # run tests in docker container
-	$(TRACE)
-	$(call run-docker-exec, -it, sh -c "make -C docker-test test.docker-tools")
-
 docker.clean: # delete docker container and image
 	$(TRACE)
 	-$(MAKE) docker.rm

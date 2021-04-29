@@ -20,15 +20,19 @@ REPOS		+= babeltrace
 REPOS		+= $(EXTRA_REPOS)
 
 CONF_PREFIX			?= --prefix=$(INSTALLDIR)/$(branch)/usr
+FLAGS			    += CPPFLAGS=-I$(INSTALLDIR)/$(branch)/usr/include
+FLAGS			    += LDFLAGS=-L$(INSTALLDIR)/$(branch)/usr/lib
+FLAGS			    += PKG_CONFIG_PATH=$(INSTALLDIR)/$(branch)/usr/lib/pkgconfig
+
 CONF_OPTION_userspace-rcu	?= $(CONF_PREFIX)
-CONF_OPTION_lttng-ust		?= $(CONF_PREFIX) --disable-man-pages
-CONF_OPTION_lttng-tools		?= $(CONF_PREFIX) --with-lttng-ust --enable-man-pages --enable-embedded-help
+CONF_OPTION_lttng-ust		?= $(CONF_PREFIX) --disable-man-pages $(FLAGS)
+CONF_OPTION_lttng-tools		?= $(CONF_PREFIX) --with-lttng-ust --enable-man-pages --enable-embedded-help $(FLAGS)
 CONF_OPTION_babeltrace		?= $(CONF_PREFIX)
 
 OUTDIR		= $(TOP)/out
 SRCDIR		= $(OUTDIR)/src
-BUILDDIR	= $(OUTDIR)/build
-INSTALLDIR	= $(OUTDIR)/install
+BUILDDIR	= $(OUTDIR)/$(HOSTNAME)/build
+INSTALLDIR	= $(OUTDIR)/$(HOSTNAME)/install
 
 PATCH		= $(Q)$(TOP)/patch-lttng
 TARGET		= $(eval target=$(subst .$*,,$@))
@@ -57,19 +61,23 @@ $(SRCDIR):
 	$(TRACE)
 	$(MKDIR) $@
 
-$(foreach repo,$(REPOS),$(SRCDIR)/$(repo) ): | $(SRCDIR)
+$(foreach repo,$(REPOS),$(SRCDIR)/$(repo) ): $(SRCDIR)
 	$(TRACE)
 	$(eval repo=$(notdir $@))
-	$(CD) $<; git clone $(REPO_$(repo))
+	$(IF) [ -d $@ ]; then \
+		git -C $@ pull; \
+	else \
+		cd $<; \
+		git clone -q $(REPO_$(repo)); \
+	fi	
 
 $(REPOS): # clone repos
 	$(TRACE)
-	$(MAKE) $(SRCDIR)/$@
+	$(MAKE) -B $(SRCDIR)/$@
 
 update.%: # update repos
 	$(TRACE)
 	$(MAKE) $*
-	$(Q)git -C $(SRCDIR)/$* pull;
 
 add_worktree.%:
 	$(TRACE)
@@ -102,7 +110,7 @@ configure.%:
 all.%:
 	$(TRACE)
 	$(TARGET)
-	$(Q)if [ ! -e $(BUILDDIR)/$(branch)/$*/config.status ]; then make $(SILENT) configure.$*; fi
+	$(Q)if [ ! -e $(BUILDDIR)/$(branch)/$*/config.status ]; then make configure.$*; fi
 	$(MAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
 
 install.%:
@@ -111,6 +119,11 @@ install.%:
 	$(MAKE) all.$*
 	$(SUDOMAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
 	$(MAKE) env.$(branch)
+
+check.%:
+	$(TRACE)
+	$(TARGET)
+	$(MAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
 
 uninstall.%:
 	$(TRACE)
@@ -127,7 +140,7 @@ clean.% TAGS.% CTAGS.% distclean-tags.%:
 	$(TRACE)
 	$(TARGET)
 	$(Q)if [ -e $(BUILDDIR)/$(branch)/$*/Makefile ]; then \
-		make $(SILENT) -C $(BUILDDIR)/$(branch)/$* $(target); \
+		make -C $(BUILDDIR)/$(branch)/$* $(target); \
 	fi
 
 env.%:
@@ -160,15 +173,16 @@ help:: Makefile.help
 
 DISTCLEAN:
 	$(TRACE)
-	$(SUDO) rm -rf $(INSTALLDIR)
+	$(SUDO) rm -f -r $(INSTALLDIR)
 	$(RM) -r $(BUILDDIR)
 	$(RM) -r $(SRCDIR)
 	$(RM) -r $(OUTDIR)
 
-all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls:
+all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls check:
 	$(TRACE)
-	$(Q)$(foreach repo,$(REPOS),make $(SILENT) $@.$(repo);)
+	$(Q)$(foreach repo,$(REPOS),make $@.$(repo);)
 
-.PHONY: help DISTCLEAN all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls
+.PHONY: help DISTCLEAN all configure unconfigure install distclean \
+        uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls check
 
 include branches.mk

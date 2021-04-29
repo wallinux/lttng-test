@@ -18,12 +18,14 @@ TOP	:= $(shell pwd)
 # Define V=1 to echo everything
 ifneq ($(V),1)
  export Q=@
- export SILENT=--no-print-directory
  DEVNULL ?= > /dev/null
  quiet = -q
  TRACE =
+ MAKEFLAGS += -s
+ MAKEFLAGS += --no-print-directory
 else
  TRACE	= @(tput setaf 1; echo ------ $@; tput sgr0)
+ MAKEFLAGS += --no-print-directory
 endif
 
 export V
@@ -33,16 +35,16 @@ CD	= $(Q)cd
 CP	= $(Q)cp
 DOCKER	= $(Q)docker
 ECHO	= $(Q)echo
-MAKE	= $(Q)make $(SILENT)
+MAKE	= $(Q)make
 MKDIR	= $(Q)mkdir -p
 RM	= $(Q)rm -f
 
 ifneq ($(UID),0)
- SUDOMAKE = $(Q)sudo make $(SILENT)
+ SUDOMAKE = $(Q)sudo make
  SUDO	  = $(Q)sudo
 else
  SUDOMAKE = $(MAKE)
- SUDO     =
+ SUDO     = $(Q)
 endif
 
 
