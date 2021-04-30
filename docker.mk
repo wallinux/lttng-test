@@ -7,11 +7,11 @@ DOCKER_CONTAINER	?= lttng
 DOCKER_HOSTNAME     ?= lttng.eprime.com
 
 define run-docker-exec
-	$(DOCKER) exec -u root $(1) $(DOCKER_CONTAINER) $(2)
+	$(DOCKER) exec -u root $(1) -w /root/lttng-test $(DOCKER_CONTAINER) $(2)
 endef
 
 define run-docker-exec-user
-	$(DOCKER) exec -u $(USER) $(1) $(DOCKER_CONTAINER) $(2)
+	$(DOCKER) exec -u $(USER) $(1) -w /home/$(USER) $(DOCKER_CONTAINER) $(2)
 endef
 
 .PHONY: docker.*
@@ -67,6 +67,7 @@ docker.rmi: # Remove docker image
 
 docker.useradd: | docker.start
 	$(TRACE)
+	$(call run-docker-exec, , sh -c "groupadd tracing")
 	$(call run-docker-exec, , sh -c "useradd --shell /bin/bash -d /home/$(USER) -m $(USER) -g tracing" )
 	$(MKSTAMP)
 

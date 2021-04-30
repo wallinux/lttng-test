@@ -149,20 +149,6 @@ env.%:
 	$(ECHO) PATH=$(INSTALLDIR)/$*/usr/bin:$$PATH >> $(OUTDIR)/$*.env
 
 #################################################################
-# test - FIXME
-fast_regression.lttng-tools root_regression.lttng-tools:
-	$(TRACE)
-	$(eval target=$(subst .lttng-tools,,$@))
-	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh $(target) |& tee $(target).out
-
-userspace_regression.lttng-tools:
-	$(TRACE)
-	$(eval target=$(subst .lttng-tools,,$@))
-	$(CD) $(BUILDDIR)/lttng-tools/tests/; ./run.sh $(TOP)/$(target) |& tee $(target).out
-
-test.lttng-tools: userspace_regression.lttng-tools # run lttng-tools tests
-
-#################################################################
 # global
 
 Makefile.help:
