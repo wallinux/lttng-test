@@ -22,7 +22,7 @@ if [ -e patches/$pkg/patches ]; then
 	if [ $? -ne 0 ]; then
 	    git -C $worktree am --abort
 	    echo "FAILED: git -C $1 am -q -3 $PWD/patches/$pkg/$patch"
-	    exit
+	    exit 1
 	fi
     done
 

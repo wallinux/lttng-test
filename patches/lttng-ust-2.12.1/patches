@@ -1,8 +1,16 @@
 0001-python-lttngust-Makefile.am-Add-install-lib-to-setup.patch
-Remove-weak-attribute-on-hidden-symbols.patch
+
+# Vet inte varför!
+#Remove-weak-attribute-on-hidden-symbols.patch
+
+# Att testa om VDSO funkar istället! Eller kolla hur lttng gör idag
 Added-ARM-and-AARCH64-cntpct-clock-plugin.patch
 adding-debug-information-when-using-custom-clock.patch
+
+#kolla om den har upstreamas
 0001-Change-lttng-threads-name-to-specified-name-for-debu.patch
+
+# kolla upstream, kör tester
 0001-Revert-Performance-implement-lttng_inline_memcpy.patch
 
 

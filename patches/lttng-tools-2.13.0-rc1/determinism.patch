@@ -1,0 +1,79 @@
+From 803656e514a6e00cdaa439aa560b9797b46cb246 Mon Sep 17 00:00:00 2001
+Message-Id: <803656e514a6e00cdaa439aa560b9797b46cb246.1619783061.git.wallinux@gmail.com>
+From: Anders Wallin <wallinux@gmail.com>
+Date: Fri, 30 Apr 2021 13:43:58 +0200
+Subject: [PATCH] determinism
+
+This is a bit ugly. Specifing abs_builddir as an RPATH is plain wrong when
+cross compiling. Sadly, removing the rpath makes libtool/automake do
+weird things and breaks the build as shared libs are no longer generated.
+
+We already try and delete the RPATH at do_install with chrpath however
+that does leave the path in the string table so it doesn't help us
+with reproducibility.
+
+Instead, hack in a bogus but harmless path, then delete it later in
+our do_install. Ultimately we may want to pass a specific path to use
+to configure if we really do need to set an RPATH at all. It is unclear
+to me whether the tests need that or not.
+
+Fixes reproducibility issues for lttng-tools.
+
+Upstream-Status: Pending [needs discussion with upstream about the correct solution]
+RP 2021/3/1
+
+Signed-off-by: Anders Wallin <wallinux@gmail.com>
+---
+ tests/regression/ust/ust-dl/Makefile.am                   | 8 ++++----
+ .../utils/testapp/userspace-probe-elf-binary/Makefile.am  | 2 +-
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/tests/regression/ust/ust-dl/Makefile.am b/tests/regression/ust/ust-dl/Makefile.am
+index 2176b23bc..58898a6f9 100644
+--- a/tests/regression/ust/ust-dl/Makefile.am
++++ b/tests/regression/ust/ust-dl/Makefile.am
+@@ -27,16 +27,16 @@ noinst_LTLIBRARIES = libzzz.la libbar.la libfoo.la libtp.la
+ 
+ libzzz_la_SOURCES = libzzz.c libzzz.h
+ libzzz_la_LDFLAGS = -module -shared -avoid-version \
+-		-rpath $(abs_builddir)
++		-rpath /usr/lib
+ 
+ libbar_la_SOURCES = libbar.c libbar.h
+ libbar_la_LDFLAGS = -module -shared -avoid-version \
+-		-rpath $(abs_builddir)
++		-rpath /usr/lib
+ libbar_la_LIBADD = libzzz.la
+ 
+ libfoo_la_SOURCES = libfoo.c libfoo.h
+ libfoo_la_LDFLAGS = -module -shared -avoid-version \
+-		-rpath $(abs_builddir)
++		-rpath /usr/lib
+ libfoo_la_LIBADD = libbar.la
+ 
+ CLEANFILES = libfoo.so libfoo.so.debug libbar.so libbar.so.debug \
+@@ -44,7 +44,7 @@ CLEANFILES = libfoo.so libfoo.so.debug libbar.so libbar.so.debug \
+ 
+ libtp_la_SOURCES = libbar-tp.h libbar-tp.c libfoo-tp.h libfoo-tp.c \
+ 	libzzz-tp.h libzzz-tp.c
+-libtp_la_LDFLAGS = -module -shared -rpath $(abs_builddir)
++libtp_la_LDFLAGS = -module -shared -rpath /usr/lib
+ 
+ # Extract debug symbols
+ libfoo.so.debug: libfoo.la
+diff --git a/tests/utils/testapp/userspace-probe-elf-binary/Makefile.am b/tests/utils/testapp/userspace-probe-elf-binary/Makefile.am
+index df74d600e..65fd7573f 100644
+--- a/tests/utils/testapp/userspace-probe-elf-binary/Makefile.am
++++ b/tests/utils/testapp/userspace-probe-elf-binary/Makefile.am
+@@ -5,7 +5,7 @@ AM_CFLAGS += -O0
+ noinst_LTLIBRARIES = libfoo.la
+ 
+ libfoo_la_SOURCES = foo.c foo.h
+-libfoo_la_LDFLAGS = -shared -module -avoid-version -rpath $(abs_builddir)/.libs/
++libfoo_la_LDFLAGS = -shared -module -avoid-version -rpath /usr/lib
+ 
+ noinst_PROGRAMS = userspace-probe-elf-binary
+ userspace_probe_elf_binary_SOURCES = userspace-probe-elf-binary.c
+-- 
+2.25.1
+
