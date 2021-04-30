@@ -23,10 +23,9 @@ RUN apt-get remove -y libbabeltrace1
 RUN apt-get install -y gcc autoconf automake libtool pkg-config asciidoc xmlto perl libnuma-dev
 
 # lttng-tools
-RUN apt-get install -y autoconf automake libtool bison flex libpopt-dev libxml2-dev swig libpfm4-dev bash kmod
+RUN apt-get install -y autoconf automake libtool bison flex libpopt-dev libxml2-dev swig libpfm4-dev bash kmod g++
 
 # rcs
 RUN apt-get install -y make git groff tzdata bsdmainutils
-#RUN apt-get install -y  python3-pip psmisc
 
 ENTRYPOINT ["/bin/bash"]

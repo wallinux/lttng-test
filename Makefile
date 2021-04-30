@@ -31,8 +31,8 @@ CONF_OPTION_babeltrace		?= $(CONF_PREFIX)
 
 OUTDIR		= $(TOP)/out
 SRCDIR		= $(OUTDIR)/src
-BUILDDIR	= $(OUTDIR)/$(HOSTNAME)/build
-INSTALLDIR	= $(OUTDIR)/$(HOSTNAME)/install
+BUILDDIR	= $(OUTDIR)/build/$(HOSTNAME)
+INSTALLDIR	= $(OUTDIR)/install/$(HOSTNAME)
 
 PATCH		= $(Q)$(TOP)/patch-lttng
 TARGET		= $(eval target=$(subst .$*,,$@))
@@ -149,7 +149,7 @@ env.%:
 	$(ECHO) PATH=$(INSTALLDIR)/$*/usr/bin:$$PATH >> $(OUTDIR)/$*.env
 
 #################################################################
-# test
+# test - FIXME
 fast_regression.lttng-tools root_regression.lttng-tools:
 	$(TRACE)
 	$(eval target=$(subst .lttng-tools,,$@))
@@ -174,8 +174,6 @@ help:: Makefile.help
 DISTCLEAN:
 	$(TRACE)
 	$(SUDO) rm -f -r $(INSTALLDIR)
-	$(RM) -r $(BUILDDIR)
-	$(RM) -r $(SRCDIR)
 	$(RM) -r $(OUTDIR)
 
 all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls check:
