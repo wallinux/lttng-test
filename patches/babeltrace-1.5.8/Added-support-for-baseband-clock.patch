@@ -1,8 +1,8 @@
-From c42d3864a8b5fe1c22e1ade3a2c74512cb06613e Mon Sep 17 00:00:00 2001
-Message-Id: <c42d3864a8b5fe1c22e1ade3a2c74512cb06613e.1505205573.git.anders.wallin@windriver.com>
+From a377eb59032bba44e96ea99409bd74603ffc275f Mon Sep 17 00:00:00 2001
+Message-Id: <a377eb59032bba44e96ea99409bd74603ffc275f.1551339460.git.anders.wallin@windriver.com>
 From: Fredrik Markstrom <fredrik.markstrom@gmail.com>
 Date: Mon, 24 Nov 2014 08:57:58 +0100
-Subject: [PATCH 1/1] Added support for baseband clock
+Subject: [PATCH] Added support for baseband clock
 
 Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
 ---
@@ -13,12 +13,12 @@ Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
  .../ctf/metadata/ctf-visitor-generate-io-struct.c  |  9 ++++--
  include/babeltrace/babeltrace-internal.h           |  3 +-
  include/babeltrace/ctf-ir/metadata.h               |  2 ++
- include/babeltrace/ctf/types.h                     |  3 ++
+ include/babeltrace/ctf/types.h                     |  6 ++++
  include/babeltrace/format-internal.h               |  1 +
- 9 files changed, 84 insertions(+), 5 deletions(-)
+ 9 files changed, 87 insertions(+), 5 deletions(-)
 
 diff --git a/converter/babeltrace.c b/converter/babeltrace.c
-index f74384e..d7386da 100644
+index ef783ed4..b0e61de7 100644
 --- a/converter/babeltrace.c
 +++ b/converter/babeltrace.c
 @@ -109,6 +109,8 @@ enum {
@@ -62,7 +62,7 @@ index f74384e..d7386da 100644
  			opt_clock_force_correlate = 1;
  			break;
 diff --git a/formats/ctf-text/ctf-text.c b/formats/ctf-text/ctf-text.c
-index 16f156d..2fefd6c 100644
+index 16f156de..2fefd6cc 100644
 --- a/formats/ctf-text/ctf-text.c
 +++ b/formats/ctf-text/ctf-text.c
 @@ -291,6 +291,13 @@ int ctf_text_write_event(struct bt_stream_pos *ppos, struct ctf_stream_definitio
@@ -80,10 +80,10 @@ index 16f156d..2fefd6c 100644
  			fprintf(pos->fp, ", ");
  		else
 diff --git a/formats/ctf/ctf.c b/formats/ctf/ctf.c
-index d6d078f..b6a07ac 100644
+index 980ebc9a..55d51da2 100644
 --- a/formats/ctf/ctf.c
 +++ b/formats/ctf/ctf.c
-@@ -76,7 +76,9 @@
+@@ -77,7 +77,9 @@
  int opt_clock_cycles,
  	opt_clock_seconds,
  	opt_clock_date,
@@ -94,7 +94,7 @@ index d6d078f..b6a07ac 100644
  
  uint64_t opt_clock_offset;
  uint64_t opt_clock_offset_ns;
-@@ -298,6 +300,8 @@ void ctf_update_timestamp(struct ctf_stream_definition *stream,
+@@ -299,6 +301,8 @@ void ctf_update_timestamp(struct ctf_stream_definition *stream,
  		stream->cycles_timestamp = integer_definition->value._unsigned;
  		stream->real_timestamp = ctf_get_real_timestamp(stream,
  				stream->cycles_timestamp);
@@ -103,7 +103,7 @@ index d6d078f..b6a07ac 100644
  		return;
  	}
  	/* keep low bits */
-@@ -316,6 +320,8 @@ void ctf_update_timestamp(struct ctf_stream_definition *stream,
+@@ -317,6 +321,8 @@ void ctf_update_timestamp(struct ctf_stream_definition *stream,
  	/* convert to real timestamp */
  	stream->real_timestamp = ctf_get_real_timestamp(stream,
  			stream->cycles_timestamp);
@@ -112,7 +112,7 @@ index d6d078f..b6a07ac 100644
  }
  
  /*
-@@ -409,6 +415,32 @@ void ctf_print_timestamp(FILE *fp,
+@@ -410,6 +416,32 @@ void ctf_print_timestamp(FILE *fp,
  	}
  }
  
@@ -145,7 +145,7 @@ index d6d078f..b6a07ac 100644
  static
  void print_uuid(FILE *fp, unsigned char *uuid)
  {
-@@ -2198,6 +2230,7 @@ int ctf_open_file_stream_read(struct ctf_trace *td, const char *path, int flags,
+@@ -2245,6 +2277,7 @@ int ctf_open_file_stream_read(struct ctf_trace *td, const char *path, int flags,
  	 * For now, only a single clock per trace is supported.
  	 */
  	file_stream->parent.current_clock = td->parent.single_clock;
@@ -153,7 +153,7 @@ index d6d078f..b6a07ac 100644
  
  	/*
  	 * Allocate the index name for this stream and try to open it.
-@@ -2527,6 +2560,7 @@ int ctf_open_mmap_stream_read(struct ctf_trace *td,
+@@ -2578,6 +2611,7 @@ int ctf_open_mmap_stream_read(struct ctf_trace *td,
  	 * For now, only a single clock per trace is supported.
  	 */
  	file_stream->parent.current_clock = td->parent.single_clock;
@@ -162,7 +162,7 @@ index d6d078f..b6a07ac 100644
  	/* Add stream file to stream class */
  	g_ptr_array_add(file_stream->parent.stream_class->streams,
 diff --git a/formats/ctf/events-private.h b/formats/ctf/events-private.h
-index 9bea75d..6f644fa 100644
+index 9bea75d4..6f644fac 100644
 --- a/formats/ctf/events-private.h
 +++ b/formats/ctf/events-private.h
 @@ -53,4 +53,20 @@ uint64_t ctf_get_real_timestamp(struct ctf_stream_definition *stream,
@@ -187,7 +187,7 @@ index 9bea75d..6f644fa 100644
 +
  #endif /* _CTF_EVENTS_PRIVATE_H */
 diff --git a/formats/ctf/metadata/ctf-visitor-generate-io-struct.c b/formats/ctf/metadata/ctf-visitor-generate-io-struct.c
-index 3b2fc78..f1b4879 100644
+index 8d348d66..4ae6ad1c 100644
 --- a/formats/ctf/metadata/ctf-visitor-generate-io-struct.c
 +++ b/formats/ctf/metadata/ctf-visitor-generate-io-struct.c
 @@ -2486,12 +2486,15 @@ int ctf_clock_visit(FILE *fd, int depth, struct ctf_node *node, struct ctf_trace
@@ -210,7 +210,7 @@ index 3b2fc78..f1b4879 100644
  	return 0;
  
 diff --git a/include/babeltrace/babeltrace-internal.h b/include/babeltrace/babeltrace-internal.h
-index 6f8e200..234ecc0 100644
+index 6f8e2006..234ecc02 100644
 --- a/include/babeltrace/babeltrace-internal.h
 +++ b/include/babeltrace/babeltrace-internal.h
 @@ -158,7 +158,6 @@ extern int babeltrace_verbose, babeltrace_debug;
@@ -231,7 +231,7 @@ index 6f8e200..234ecc0 100644
  	opt_debug_info_full_path;
  
 diff --git a/include/babeltrace/ctf-ir/metadata.h b/include/babeltrace/ctf-ir/metadata.h
-index 4d291c7..db15e52 100644
+index 4d291c75..db15e524 100644
 --- a/include/babeltrace/ctf-ir/metadata.h
 +++ b/include/babeltrace/ctf-ir/metadata.h
 @@ -58,6 +58,7 @@ struct ctf_stream_definition {
@@ -251,21 +251,24 @@ index 4d291c7..db15e52 100644
  	/* Event discarded information */
  	uint64_t events_discarded;
 diff --git a/include/babeltrace/ctf/types.h b/include/babeltrace/ctf/types.h
-index cc8acbf..95149a7 100644
+index 0bc003c8..80967335 100644
 --- a/include/babeltrace/ctf/types.h
 +++ b/include/babeltrace/ctf/types.h
-@@ -247,6 +247,9 @@ void ctf_pos_get_event(struct ctf_stream_pos *pos)
+@@ -254,6 +254,12 @@ int ctf_pos_get_event(struct ctf_stream_pos *pos)
  
  void ctf_print_timestamp(FILE *fp, struct ctf_stream_definition *stream,
  			uint64_t timestamp);
 +
 +void ctf_print_bfn(FILE *fp, struct ctf_stream_definition *stream,
 +		   uint64_t linear_bfn);
++void ctf_print_lbfn(FILE *fp,
++		    struct ctf_stream_definition *stream,
++		    uint64_t lbfn);
  int ctf_append_trace_metadata(struct bt_trace_descriptor *tdp,
  			FILE *metadata_fp);
- 
+ void ctf_print_discarded_lost(FILE *fp, struct ctf_stream_definition *stream);
 diff --git a/include/babeltrace/format-internal.h b/include/babeltrace/format-internal.h
-index 78f2fd5..aad3b2d 100644
+index 78f2fd55..aad3b2dc 100644
 --- a/include/babeltrace/format-internal.h
 +++ b/include/babeltrace/format-internal.h
 @@ -48,6 +48,7 @@ struct bt_trace_descriptor {
@@ -277,5 +280,5 @@ index 78f2fd5..aad3b2d 100644
  
  static inline void init_trace_descriptor(struct bt_trace_descriptor *td) {
 -- 
-2.5.0
+2.13.3
 
