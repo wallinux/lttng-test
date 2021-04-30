@@ -12,9 +12,9 @@ REPO_babeltrace    = https://git.efficios.com/babeltrace.git
 REPO_lttng-modules = git://git.lttng.org/lttng-modules.git/
 
 REPOS		+= userspace-rcu
+REPOS		+= babeltrace
 REPOS		+= lttng-ust
 REPOS		+= lttng-tools
-REPOS		+= babeltrace
 
 #EXTRA_REPOS	?= lttng-modules
 REPOS		+= $(EXTRA_REPOS)
@@ -181,6 +181,7 @@ all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean
 	$(Q)$(foreach repo,$(REPOS),make $@.$(repo);)
 
 .PHONY: help DISTCLEAN all configure unconfigure install distclean \
-        uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls check
+        uninstall clean TAGS CTAGS distclean-tags update \
+		add_worktree remove_worktree patch_worktree bls check
 
 include branches.mk
