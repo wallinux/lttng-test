@@ -1,0 +1,47 @@
+From 5e244f34448651c8280b9a7ffc1df60c75980466 Mon Sep 17 00:00:00 2001
+Message-Id: <5e244f34448651c8280b9a7ffc1df60c75980466.1620222954.git.wallinux@gmail.com>
+From: Anders Wallin <wallinux@gmail.com>
+Date: Wed, 5 May 2021 15:22:12 +0200
+Subject: [PATCH] Fix bus error in lttng_inline_memcpy for arm
+
+LINCCM-1893 - "lttng 2.9 crash, memory align bug"
+SF 00079489
+
+(gdb) bt full
+No locals.
+__len = 8
+handle = 0xf3b2e0c0
+backend_pages = <optimized out>
+chanb = 0xf3b2e2e0
+offset = <optimized out>
+No locals.
+ctx =
+
+{chan = 0xf3b2e290, priv = 0x0, handle = 0xf3b2e0c0, data_size = 8, largest_align = 1, cpu = -1, buf = 0xf6909000, slot_size = 8, buf_offset = 163877, pre_offset = 163877, tsc = 0, rflags = 0, ctx_len = 80, ip = 0x0, priv2 = 0x0, padding2 = '\000' <repeats 11 times>, backend_pages = 0xf690c000}
+
+Signed-off-by: Anders Wallin <wallinux@gmail.com>
+---
+ src/common/ringbuffer/backend_internal.h | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/common/ringbuffer/backend_internal.h b/src/common/ringbuffer/backend_internal.h
+index 9ce9d140..c78ff91f 100644
+--- a/src/common/ringbuffer/backend_internal.h
++++ b/src/common/ringbuffer/backend_internal.h
+@@ -619,7 +619,12 @@ void lttng_inline_memcpy(void *dest, const void *src,
+ 		*(uint32_t *) dest = *(const uint32_t *) src;
+ 		break;
+ 	case 8:
+-		*(uint64_t *) dest = *(const uint64_t *) src;
++#if defined(__arm__)
++		if ((long int) dest % 8)
++			inline_memcpy(dest, src, len);
++		else
++#endif
++		        *(uint64_t *) dest = *(const uint64_t *) src;
+ 		break;
+ 	default:
+ 		inline_memcpy(dest, src, len);
+-- 
+2.25.1
+

@@ -1,9 +1,40 @@
+# from oe-core
 0001-python-lttngust-Makefile.am-Add-install-lib-to-setup.patch
-Remove-weak-attribute-on-hidden-symbols.patch
-Added-ARM-and-AARCH64-cntpct-clock-plugin.patch
-adding-debug-information-when-using-custom-clock.patch
-0001-Change-lttng-threads-name-to-specified-name-for-debu.patch
-0001-Revert-Performance-implement-lttng_inline_memcpy.patch
 
+# Introduced in 2.5 by Pär Olsson
+# In tracepoint.h the __start___tracepoints_ptrs and
+# __stop___tracepoints_ptrs symbols are defined with
+# weak and hidden visibility.
+# extern struct tracepoint * const __start___tracepoints_ptrs[]
+# extern struct tracepoint * const __stop___tracepoints_ptrs[]
+#         __attribute__((weak, visibility("hidden")));
+# But with gcc 4.8.1 the symbols changed from a local
+# to a global symbol and the dynamic loader no longer
+# knows how to select the correct weak symbol.
+# A temporary fix is to remove the weak attribute to
+# get hidden visibility and make sure the symbol is
+# resolved locally inside the shared object.
+#
+#Remove-weak-attribute-on-hidden-symbols.patch
 
+# LINCCM-796 - "Could not move LTTNG threads from one cgroup to other"
+# SF 00060930 - Raj Gopal, EPB2
+# 29/Aug/16 on wrlinux 7, lttng 2.5
+# not upstreamed
+# Suggested to remove
+#0001-Change-lttng-threads-name-to-specified-name-for-debu.patch
+
+# LINCCM-1893 - "lttng 2.9 crash, memory align bug"
+# SF 00079489 - Miroslav Krizanic
+# 21/Nov/17 on wrlinux8, lttng 2.9
+# Upstreamed, but rejected.
+# https://lists.lttng.org/pipermail/lttng-dev/2017-November/027604.html
+# Still a valid problem, but should be solve in some other way.
+#0001-Revert-Performance-implement-lttng_inline_memcpy.patch
+# Replaced with:
+0001-Fix-bus-error-in-lttng_inline_memcpy-for-arm.patch
+
+# 5.10 kernel has COMPAT_VDSO support and this is not needed any more
+#Added-ARM-and-AARCH64-cntpct-clock-plugin.patch
+#adding-debug-information-when-using-custom-clock.patch
 
