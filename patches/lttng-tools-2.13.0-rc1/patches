@@ -3,21 +3,29 @@
 0001-tests-regression-disable-the-tools-live-tests.patch
 determinism.patch
 
-# eprime
+# eprime - tests
 root_regression-tests-updated-to-succeed-on-RCS-targ.patch
-Fix-consumerd-memory-leak-when-using-snapshot-sessio.patch
-Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
 Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
 0001-tests-epoll_wait-missing-in-aarch64.patch
-0001-tmpfix-using-nroff-instead-of-man.patch
-0001-fix-test-regression-kernel-test_channel-missing-from.patch
+#0001-fix-test-regression-kernel-test_channel-missing-from.patch
 0001-Fix-test-code-assumes-that-child-process-is-schedule.patch
+0001-Fix-updated-no-of-tests-for-test_callstack.patch
+
+# vet inte
+Fix-consumerd-memory-leak-when-using-snapshot-sessio.patch
+
+#breaks E tests
+#Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
+# Borde gå att ta bort och kräva att E/// inte kör på gamla byggmaskiner
+0001-tmpfix-using-nroff-instead-of-man.patch
 
 # axxiaarm & axxiaarm64
+# Kolla VDSO
 Added-tests-for-ARM-CNTPCT-clock-plugin.patch
 
 # axxiax86-64
+# kolla upstream
 0001-Tests-add-missing-multilib-tracing-test.patch
-0001-Use-platform-independant-types-in-sessiond-to-consum.patch
+#0001-Use-platform-independant-types-in-sessiond-to-consum.patch
 #TBD 0001-lttng-tools-2.10-Fix-multilib-internal-packed-struct.patch
 #TBD 0001-lttng-tools-fix-regression-in-multilib-internal-pack.patch

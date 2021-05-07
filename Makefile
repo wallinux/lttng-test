@@ -19,10 +19,10 @@ REPOS		+= lttng-tools
 #EXTRA_REPOS	?= lttng-modules
 REPOS		+= $(EXTRA_REPOS)
 
-CONF_PREFIX			?= --prefix=$(INSTALLDIR)/$(branch)/usr
-FLAGS			    += CPPFLAGS=-I$(INSTALLDIR)/$(branch)/usr/include
-FLAGS			    += LDFLAGS=-L$(INSTALLDIR)/$(branch)/usr/lib
-FLAGS			    += PKG_CONFIG_PATH=$(INSTALLDIR)/$(branch)/usr/lib/pkgconfig
+CONF_PREFIX	?= --prefix=$(INSTALLDIR)/$(branch)/usr
+FLAGS		+= CPPFLAGS=-I$(INSTALLDIR)/$(branch)/usr/include
+FLAGS		+= LDFLAGS=-L$(INSTALLDIR)/$(branch)/usr/lib
+FLAGS		+= PKG_CONFIG_PATH=$(INSTALLDIR)/$(branch)/usr/lib/pkgconfig
 
 CONF_OPTION_userspace-rcu	?= $(CONF_PREFIX)
 CONF_OPTION_lttng-ust		?= $(CONF_PREFIX) --disable-man-pages $(FLAGS)

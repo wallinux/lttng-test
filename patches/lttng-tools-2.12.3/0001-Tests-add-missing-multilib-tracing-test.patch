@@ -1,5 +1,5 @@
-From f72cf4e079839ddd6b1190be5c515ea9b8fa1fe7 Mon Sep 17 00:00:00 2001
-Message-Id: <f72cf4e079839ddd6b1190be5c515ea9b8fa1fe7.1601398886.git.anders.wallin@windriver.com>
+From c1de214214e0a5691a1f7314f54998542b2cb57f Mon Sep 17 00:00:00 2001
+Message-Id: <c1de214214e0a5691a1f7314f54998542b2cb57f.1620311955.git.wallinux@gmail.com>
 From: Stefan Palade <stefan.palade@windriver.com>
 Date: Wed, 6 Mar 2019 15:06:39 +0000
 Subject: [PATCH] Tests: add missing multilib tracing test
@@ -30,10 +30,10 @@ Signed-off-by: Stefan Palade <stefan.palade@windriver.com>
  create mode 100644 tests/regression/ust/multilib-session/ust_gen_nevents.h
 
 diff --git a/configure.ac b/configure.ac
-index 94ce5b38..7f6384a8 100644
+index 190f25d8b..327c0550f 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -1175,6 +1175,7 @@ AC_CONFIG_FILES([
+@@ -1177,6 +1177,7 @@ AC_CONFIG_FILES([
  	tests/regression/ust/buffers-pid/Makefile
  	tests/regression/ust/periodical-metadata-flush/Makefile
  	tests/regression/ust/multi-session/Makefile
@@ -42,29 +42,29 @@ index 94ce5b38..7f6384a8 100644
  	tests/regression/ust/overlap/Makefile
  	tests/regression/ust/overlap/demo/Makefile
 diff --git a/tests/Makefile.am b/tests/Makefile.am
-index 3d3ba886..fcb1d4ff 100644
+index 8f5c15d34..3f00621d6 100644
 --- a/tests/Makefile.am
 +++ b/tests/Makefile.am
 @@ -16,8 +16,8 @@ else
  endif
  
  
--dist_noinst_SCRIPTS = run.sh fast_regression long_regression root_regression root_destructive_tests perf_regression rcs_regression
--EXTRA_DIST = run.sh fast_regression long_regression root_regression README root_destructive_tests perf_regression rcs_regression
-+dist_noinst_SCRIPTS = run.sh fast_regression long_regression root_regression root_destructive_tests perf_regression rcs_regression multilib_regression
-+EXTRA_DIST = run.sh fast_regression long_regression root_regression README root_destructive_tests perf_regression rcs_regression multilib_regression
+-dist_noinst_SCRIPTS = run.sh fast_regression long_regression root_regression root_destructive_tests perf_regression
+-EXTRA_DIST = run.sh fast_regression long_regression root_regression README root_destructive_tests perf_regression
++dist_noinst_SCRIPTS = run.sh fast_regression long_regression root_regression root_destructive_tests perf_regression multilib_regression
++EXTRA_DIST = run.sh fast_regression long_regression root_regression README root_destructive_tests perf_regression multilib_regression
  
  all-local:
  	@if [ x"$(srcdir)" != x"$(builddir)" ]; then \
 diff --git a/tests/multilib_regression b/tests/multilib_regression
 new file mode 100644
-index 00000000..8b1a5371
+index 000000000..8b1a5371a
 --- /dev/null
 +++ b/tests/multilib_regression
 @@ -0,0 +1 @@
 +regression/ust/multilib-session/test_ml_trace
 diff --git a/tests/regression/Makefile.am b/tests/regression/Makefile.am
-index cf283b18..0a50ace2 100644
+index 9ba7b42f2..34a82d2fb 100644
 --- a/tests/regression/Makefile.am
 +++ b/tests/regression/Makefile.am
 @@ -42,6 +42,7 @@ SUBDIRS += ust
@@ -76,7 +76,7 @@ index cf283b18..0a50ace2 100644
  	ust/overlap/test_overlap \
  	ust/java-jul/test_java_jul \
 diff --git a/tests/regression/ust/Makefile.am b/tests/regression/ust/Makefile.am
-index 994fa6a6..8cb93142 100644
+index 994fa6a68..8cb931425 100644
 --- a/tests/regression/ust/Makefile.am
 +++ b/tests/regression/ust/Makefile.am
 @@ -5,7 +5,8 @@ SUBDIRS = nprocesses high-throughput low-throughput before-after multi-session \
@@ -91,7 +91,7 @@ index 994fa6a6..8cb93142 100644
  SUBDIRS += baddr-statedump ust-dl
 diff --git a/tests/regression/ust/multilib-session/Makefile.am b/tests/regression/ust/multilib-session/Makefile.am
 new file mode 100644
-index 00000000..2cf49f0c
+index 000000000..2cf49f0c8
 --- /dev/null
 +++ b/tests/regression/ust/multilib-session/Makefile.am
 @@ -0,0 +1,22 @@
@@ -119,7 +119,7 @@ index 00000000..2cf49f0c
 +	fi
 diff --git a/tests/regression/ust/multilib-session/gen-nevents.c b/tests/regression/ust/multilib-session/gen-nevents.c
 new file mode 100644
-index 00000000..51400d05
+index 000000000..51400d059
 --- /dev/null
 +++ b/tests/regression/ust/multilib-session/gen-nevents.c
 @@ -0,0 +1,53 @@
@@ -178,7 +178,7 @@ index 00000000..51400d05
 +}
 diff --git a/tests/regression/ust/multilib-session/test_ml_trace b/tests/regression/ust/multilib-session/test_ml_trace
 new file mode 100755
-index 00000000..3715da39
+index 000000000..3715da39a
 --- /dev/null
 +++ b/tests/regression/ust/multilib-session/test_ml_trace
 @@ -0,0 +1,189 @@
@@ -373,7 +373,7 @@ index 00000000..3715da39
 +rm -rf "$TRACE_PATH"
 diff --git a/tests/regression/ust/multilib-session/tp.c b/tests/regression/ust/multilib-session/tp.c
 new file mode 100644
-index 00000000..c90b996d
+index 000000000..c90b996d9
 --- /dev/null
 +++ b/tests/regression/ust/multilib-session/tp.c
 @@ -0,0 +1,17 @@
@@ -396,7 +396,7 @@ index 00000000..c90b996d
 +#include "ust_gen_nevents.h"
 diff --git a/tests/regression/ust/multilib-session/ust_gen_nevents.h b/tests/regression/ust/multilib-session/ust_gen_nevents.h
 new file mode 100644
-index 00000000..7a1c7287
+index 000000000..7a1c72870
 --- /dev/null
 +++ b/tests/regression/ust/multilib-session/ust_gen_nevents.h
 @@ -0,0 +1,60 @@
@@ -461,5 +461,5 @@ index 00000000..7a1c7287
 +/* This part must be outside ifdef protection */
 +#include <lttng/tracepoint-event.h>
 -- 
-2.28.0
+2.25.1
 

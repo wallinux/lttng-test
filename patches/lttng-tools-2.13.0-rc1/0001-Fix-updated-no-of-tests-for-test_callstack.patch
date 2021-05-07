@@ -1,0 +1,27 @@
+From 2a37fc9e8dc7f29f0c96f18971ca33b11c66f16d Mon Sep 17 00:00:00 2001
+Message-Id: <2a37fc9e8dc7f29f0c96f18971ca33b11c66f16d.1620287454.git.wallinux@gmail.com>
+From: Anders Wallin <wallinux@gmail.com>
+Date: Thu, 6 May 2021 09:50:12 +0200
+Subject: [PATCH] Fix: updated no of tests for test_callstack
+
+Signed-off-by: Anders Wallin <wallinux@gmail.com>
+---
+ tests/regression/kernel/test_callstack | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tests/regression/kernel/test_callstack b/tests/regression/kernel/test_callstack
+index c4a6200da..a63e6bc07 100755
+--- a/tests/regression/kernel/test_callstack
++++ b/tests/regression/kernel/test_callstack
+@@ -9,7 +9,7 @@ TEST_DESC="Kernel tracer - Callstack context"
+ 
+ CURDIR=$(dirname "$0")/
+ TESTDIR=$CURDIR/../..
+-NUM_TESTS=11
++NUM_TESTS=12
+ TEST_APP_USERSPACE="$TESTDIR/utils/testapp/gen-syscall-events-callstack/gen-syscall-events-callstack"
+ TEST_APP_KERNELSPACE="$TESTDIR/utils/testapp/gen-syscall-events/gen-syscall-events"
+ PARSE_CALLSTACK="$TESTDIR/utils/parse-callstack.py"
+-- 
+2.25.1
+
