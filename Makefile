@@ -168,6 +168,7 @@ all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean
 
 .PHONY: help DISTCLEAN all configure unconfigure install distclean \
         uninstall clean TAGS CTAGS distclean-tags update \
-		add_worktree remove_worktree patch_worktree bls check
+	add_worktree remove_worktree patch_worktree bls check \
+	$(REPOS)
 
 include branches.mk
