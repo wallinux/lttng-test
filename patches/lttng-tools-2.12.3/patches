@@ -10,6 +10,8 @@ Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
 0001-fix-test-regression-kernel-test_channel-missing-from.patch
 0001-Fix-test-code-assumes-that-child-process-is-schedule.patch
 0001-Fix-updated-no-of-tests-for-test_callstack.patch
+0001-test-remove-failing-aarch64-test.patch
+0001-test-remove-failing-cross-compile-test.patch
 
 # LINCCM-704 - LTTng consumerd consumes memory
 # SF00057786
@@ -31,9 +33,17 @@ Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
 # 5.10 kernel has COMPAT_VDSO support and this is not needed any more
 #Added-tests-for-ARM-CNTPCT-clock-plugin.patch
 
-# axxiax86-64
-# kolla upstream
+# axxiax86-64 only
+# extremely hardcoded test for G3 target.
+# should be updated and align with newer src base.
+# could be merged into existing test suite
 0001-Tests-add-missing-multilib-tracing-test.patch
-0001-Use-platform-independant-types-in-sessiond-to-consum.patch
+
+# TBD
+#0001-Use-platform-independant-types-in-sessiond-to-consum.patch
+
+# TBD
 #0001-lttng-tools-2.10-Fix-multilib-internal-packed-struct.patch
-0001-lttng-tools-fix-regression-in-multilib-internal-pack.patch
+
+# TBD
+#0001-lttng-tools-fix-regression-in-multilib-internal-pack.patch

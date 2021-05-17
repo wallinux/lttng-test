@@ -15,9 +15,7 @@ REPOS		+= userspace-rcu
 REPOS		+= babeltrace
 REPOS		+= lttng-ust
 REPOS		+= lttng-tools
-
-#EXTRA_REPOS	?= lttng-modules
-REPOS		+= $(EXTRA_REPOS)
+#REPOS		+= lttng-modules
 
 CONF_PREFIX	?= --prefix=$(INSTALLDIR)/$(branch)/usr
 FLAGS		+= CPPFLAGS=-I$(INSTALLDIR)/$(branch)/usr/include
