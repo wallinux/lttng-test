@@ -1,5 +1,5 @@
-From b24542467fbd8a5867025a6f8aad4e6bcc3d0479 Mon Sep 17 00:00:00 2001
-Message-Id: <b24542467fbd8a5867025a6f8aad4e6bcc3d0479.1601303592.git.anders.wallin@windriver.com>
+From f729a2b32f6fcc6c42c425f8008a919e77a6d36c Mon Sep 17 00:00:00 2001
+Message-Id: <f729a2b32f6fcc6c42c425f8008a919e77a6d36c.1621246283.git.wallinux@gmail.com>
 From: Anders Wallin <anders.wallin@windriver.com>
 Date: Mon, 16 Oct 2017 13:10:20 +0200
 Subject: [PATCH] Test: Changed no of kernel snapshots from 1000 to 100
@@ -10,19 +10,19 @@ Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
  1 file changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/tests/regression/tools/snapshots/test_kernel b/tests/regression/tools/snapshots/test_kernel
-index 15b7ec17..ec907c46 100755
+index d4e0008f9..a7c4bbb92 100755
 --- a/tests/regression/tools/snapshots/test_kernel
 +++ b/tests/regression/tools/snapshots/test_kernel
 @@ -14,7 +14,7 @@ CHANNEL_NAME="snapchan"
  
  TRACE_PATH=$(mktemp -d)
  
--NUM_TESTS=2060
-+NUM_TESTS=260
+-NUM_TESTS=2061
++NUM_TESTS=261
  
  source $TESTDIR/utils/utils.sh
  
-@@ -185,9 +185,9 @@ function test_kernel_local_snapshot_overwrite_small_buffers ()
+@@ -184,9 +184,9 @@ function test_kernel_local_snapshot_overwrite_small_buffers ()
  	destroy_lttng_session_ok $SESSION_NAME
  }
  
@@ -34,7 +34,7 @@ index 15b7ec17..ec907c46 100755
  
  	diag "Test local kernel snapshots"
  	create_lttng_session_no_output $SESSION_NAME
-@@ -229,13 +229,13 @@ skip $isroot "Root access is needed. Skipping all kernel snapshot tests." $NUM_T
+@@ -228,13 +228,13 @@ skip $isroot "Root access is needed. Skipping all kernel snapshot tests" $NUM_TE
  
  	start_lttng_sessiond
  
@@ -51,5 +51,5 @@ index 15b7ec17..ec907c46 100755
  
  	for fct_test in ${tests[@]};
 -- 
-2.28.0
+2.25.1
 

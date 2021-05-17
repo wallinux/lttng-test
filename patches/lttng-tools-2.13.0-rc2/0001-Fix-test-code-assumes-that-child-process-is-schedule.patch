@@ -1,0 +1,99 @@
+From 8ba0cc9c8274bf2659f3c5f874156d54bce5d93b Mon Sep 17 00:00:00 2001
+Message-Id: <8ba0cc9c8274bf2659f3c5f874156d54bce5d93b.1617954520.git.wallinux@gmail.com>
+From: Anders Wallin <wallinux@gmail.com>
+Date: Thu, 8 Apr 2021 10:14:31 +0200
+Subject: [PATCH] Fix: test code assumes that child process is schedule to run
+ before parent
+
+the following tests fails on arm64
+- test_event_vpid_tracker ust 0 "${EVENT_NAME}"
+- test_event_vpid_track_untrack ust 0 "${EVENT_NAME}"
+- test_event_pid_tracker ust 0 "${EVENT_NAME}"
+- test_event_pid_track_untrack ust 0 "${EVENT_NAME}"
+
+Signed-off-by: Anders Wallin <wallinux@gmail.com>
+---
+ .../tools/tracker/test_event_tracker           | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/tests/regression/tools/tracker/test_event_tracker b/tests/regression/tools/tracker/test_event_tracker
+index 711690af..7f7d68da 100755
+--- a/tests/regression/tools/tracker/test_event_tracker
++++ b/tests/regression/tools/tracker/test_event_tracker
+@@ -5,7 +5,7 @@
+ #
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
+-TEST_DESC="LTTng - Event traker test"
++TEST_DESC="LTTng - Event tracker test"
+ 
+ CURDIR=$(dirname "$0")/
+ TESTDIR="$CURDIR/../../.."
+@@ -17,8 +17,8 @@ TESTAPP_KERNEL_BIN="$TESTAPP_PATH/$TESTAPP_KERNEL_NAME/$TESTAPP_KERNEL_NAME"
+ SESSION_NAME="tracker"
+ NR_ITER=100
+ NUM_GLOBAL_TESTS=2
+-NUM_UST_TESTS=283
+-NUM_KERNEL_TESTS=462
++NUM_UST_TESTS=289
++NUM_KERNEL_TESTS=468
+ NUM_TESTS=$((NUM_UST_TESTS+NUM_KERNEL_TESTS+NUM_GLOBAL_TESTS))
+ 
+ NR_USEC_WAIT=0	#for UST gen events
+@@ -130,6 +130,8 @@ function test_event_vpid_tracker()
+ 
+ 	prepare_"$domain"_app
+ 
++	lttng_untrack_"$domain"_ok "--all --vpid"
++
+ 	start_lttng_tracing_ok
+ 
+ 	if [ "$expect_event" -eq 1 ]; then
+@@ -146,7 +148,7 @@ function test_event_vpid_tracker()
+ 	if [ "$expect_event" -eq 1 ]; then
+ 		validate_trace "$EVENT_NAME" "$trace_path"
+ 	else
+-		validate_trace_empty "$trace_path"
++		validate_trace_session_"$domain"_empty "$trace_path"
+ 	fi
+ 
+ 	rm -rf "$trace_path"
+@@ -173,6 +175,8 @@ function test_event_pid_tracker()
+ 
+ 	prepare_"$domain"_app
+ 
++	lttng_untrack_"$domain"_ok "--all --pid"
++
+ 	start_lttng_tracing_ok
+ 
+ 	if [ "$expect_event" -eq 1 ]; then
+@@ -189,7 +193,7 @@ function test_event_pid_tracker()
+ 	if [ "$expect_event" -eq 1 ]; then
+ 		validate_trace "$EVENT_NAME" "$trace_path"
+ 	else
+-		validate_trace_empty "$trace_path"
++	    	validate_trace_session_"$domain"_empty "$trace_path"
+ 	fi
+ 
+ 	rm -rf "$trace_path"
+@@ -275,6 +279,8 @@ function test_event_vpid_track_untrack()
+ 
+ 	prepare_"$domain"_app
+ 
++	lttng_untrack_"$domain"_ok "--all --vpid"
++
+ 	start_lttng_tracing_ok
+ 
+ 	lttng_track_"$domain"_ok "--vpid ${CHILD_PID}"
+@@ -315,6 +321,8 @@ function test_event_pid_track_untrack()
+ 
+ 	prepare_"$domain"_app
+ 
++	lttng_untrack_"$domain"_ok "--all --pid"
++
+ 	start_lttng_tracing_ok
+ 
+ 	lttng_track_"$domain"_ok "--pid ${CHILD_PID}"
+-- 
+2.31.1
+

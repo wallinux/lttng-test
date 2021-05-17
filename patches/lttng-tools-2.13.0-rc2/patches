@@ -1,0 +1,43 @@
+# from oe-core
+0001-tests-do-not-strip-a-helper-library.patch
+0001-tests-regression-disable-the-tools-live-tests.patch
+determinism.patch
+
+# eprime - tests
+root_regression-tests-updated-to-succeed-on-RCS-targ.patch
+Test-Changed-no-of-kernel-snapshots-from-1000-to-100.patch
+0001-Fix-test-code-assumes-that-child-process-is-schedule.patch
+0001-Fix-updated-no-of-tests-for-test_callstack.patch
+0001-test-remove-failing-cross-compile-test.patch
+0001-test-remove-failing-aarch64-test.patch
+0001-Tests-add-missing-multilib-tracing-test.patch
+
+# LINCCM-704 - LTTng consumerd consumes memory
+# SF00057786
+# 31/May/16 Anette Schött wrlinux6 lttng 2.8
+# https://bugs.lttng.org/issues/1017 - Open
+# Could not reproduce the issue on newer lttng version
+# Removing patch
+# Fix-consumerd-memory-leak-when-using-snapshot-sessio.patch
+
+# Breaks E tests, this changed the behavoiur of lttng snapshot
+# Rejected upstream
+# https://lists.lttng.org/pipermail/lttng-dev/2016-December/026788.html
+Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
+
+# Required since man-native is not available
+0001-tmpfix-using-nroff-instead-of-man.patch
+
+# axxiaarm & axxiaarm64
+# 5.10 kernel has COMPAT_VDSO support and this is not needed any more
+#Added-tests-for-ARM-CNTPCT-clock-plugin.patch
+
+
+# TBD
+#0001-Use-platform-independant-types-in-sessiond-to-consum.patch
+
+# TBD
+#0001-lttng-tools-2.10-Fix-multilib-internal-packed-struct.patch
+
+# TBD
+#0001-lttng-tools-fix-regression-in-multilib-internal-pack.patch

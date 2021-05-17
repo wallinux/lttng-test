@@ -8,14 +8,14 @@ rcs10_babeltrace=v1.5.8
 branches += rcs10
 
 rcs12_userspace-rcu=v0.12.2
-rcs12_lttng-ust=v2.12.1
+rcs12_lttng-ust=v2.12.2
 rcs12_lttng-tools=v2.12.3
 rcs12_babeltrace=v2.0.4
 branches += rcs12
 
 rcs13_userspace-rcu=v0.12.2
-rcs13_lttng-ust=v2.13.0-rc1
-rcs13_lttng-tools=v2.13.0-rc1
+rcs13_lttng-ust=v2.13.0-rc2
+rcs13_lttng-tools=v2.13.0-rc2
 rcs13_babeltrace=v2.0.4
 branches += rcs13
 

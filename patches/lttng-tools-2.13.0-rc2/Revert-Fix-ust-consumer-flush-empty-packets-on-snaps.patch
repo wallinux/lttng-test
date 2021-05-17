@@ -1,0 +1,44 @@
+From 1c722c8e2c52d0e06f7e899db50e409e38cc6283 Mon Sep 17 00:00:00 2001
+Message-Id: <1c722c8e2c52d0e06f7e899db50e409e38cc6283.1621258701.git.wallinux@gmail.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Fri, 16 Dec 2016 08:34:23 +0000
+Subject: [PATCH] Revert "Fix: ust-consumer: flush empty packets on snapshot
+ channel"
+
+This reverts commit 964f17f3183d74713de9075d3144c9a76f9e1076.
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ src/common/ust-consumer/ust-consumer.c | 16 +++++-----------
+ 1 file changed, 5 insertions(+), 11 deletions(-)
+
+diff --git a/src/common/ust-consumer/ust-consumer.c b/src/common/ust-consumer/ust-consumer.c
+index 2948fda50..a89993f76 100644
+--- a/src/common/ust-consumer/ust-consumer.c
++++ b/src/common/ust-consumer/ust-consumer.c
+@@ -1133,17 +1133,11 @@ static int snapshot_channel(struct lttng_consumer_channel *channel,
+ 					stream->key);
+ 		}
+ 
+-		/*
+-		 * If tracing is active, we want to perform a "full" buffer flush.
+-		 * Else, if quiescent, it has already been done by the prior stop.
+-		 */
+-		if (!stream->quiescent) {
+-			ret = lttng_ust_ctl_flush_buffer(stream->ustream, 0);
+-			if (ret < 0) {
+-				ERR("Failed to flush buffer during snapshot of channel: channel key = %" PRIu64 ", channel name = '%s'",
+-						channel->key, channel->name);
+-				goto error_unlock;
+-			}
++		ret = lttng_ust_ctl_flush_buffer(stream->ustream, 0);
++		if (ret < 0) {
++		  ERR("Failed to flush buffer during snapshot of channel: channel key = %" PRIu64 ", channel name = '%s'",
++		      channel->key, channel->name);
++		  goto error_unlock;
+ 		}
+ 
+ 		ret = lttng_ustconsumer_take_snapshot(stream);
+-- 
+2.25.1
+
