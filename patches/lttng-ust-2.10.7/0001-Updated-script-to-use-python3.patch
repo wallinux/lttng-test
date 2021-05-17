@@ -1,0 +1,24 @@
+From 23422611c1087108c1a8d0cfe984d7a6f3f32620 Mon Sep 17 00:00:00 2001
+Message-Id: <23422611c1087108c1a8d0cfe984d7a6f3f32620.1621016223.git.anders.wallin@windriver.com>
+From: Anders Wallin <anders.wallin@windriver.com>
+Date: Fri, 14 May 2021 18:16:22 +0000
+Subject: [PATCH 1/1] Updated script to use python3
+
+Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
+---
+ tools/lttng-gen-tp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/lttng-gen-tp b/tools/lttng-gen-tp
+index 6aa1bba1..57d1a7f3 100755
+--- a/tools/lttng-gen-tp
++++ b/tools/lttng-gen-tp
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python3
+ #
+ # Copyright (c)  2012 Yannick Brosseau <yannick.brosseau@gmail.com>
+ #
+-- 
+2.29.2
+
