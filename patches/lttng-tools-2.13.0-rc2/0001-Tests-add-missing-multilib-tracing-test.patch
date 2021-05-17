@@ -1,5 +1,5 @@
-From 96a2c367a83caa0e9f5771f3eca1e46701759ef1 Mon Sep 17 00:00:00 2001
-Message-Id: <96a2c367a83caa0e9f5771f3eca1e46701759ef1.1621247030.git.wallinux@gmail.com>
+From 69c21c7ecc204ba9d31f47a958792dc7ff576403 Mon Sep 17 00:00:00 2001
+Message-Id: <69c21c7ecc204ba9d31f47a958792dc7ff576403.1621263288.git.wallinux@gmail.com>
 From: Stefan Palade <stefan.palade@windriver.com>
 Date: Wed, 6 Mar 2019 15:06:39 +0000
 Subject: [PATCH] Tests: add missing multilib tracing test
@@ -596,7 +596,7 @@ index 000000000..e614e5613
 +#include "ust_gen_nevents.h"
 diff --git a/tests/regression/ust/multilib-session/ust_gen_nevents.h b/tests/regression/ust/multilib-session/ust_gen_nevents.h
 new file mode 100644
-index 000000000..a4f4067d1
+index 000000000..09fb640a9
 --- /dev/null
 +++ b/tests/regression/ust/multilib-session/ust_gen_nevents.h
 @@ -0,0 +1,54 @@
@@ -649,8 +649,8 @@ index 000000000..a4f4067d1
 +
 +#endif /* _TRACEPOINT_UST_GEN_NEVENTS_H */
 +
-+#undef TRACEPOINT_INCLUDE_FILE
-+#define TRACEPOINT_INCLUDE_FILE ./ust_gen_nevents.h
++#undef TRACEPOINT_INCLUDE
++#define TRACEPOINT_INCLUDE "./ust_gen_nevents.h"
 +
 +/* This part must be outside ifdef protection */
 +#include <lttng/tracepoint-event.h>
