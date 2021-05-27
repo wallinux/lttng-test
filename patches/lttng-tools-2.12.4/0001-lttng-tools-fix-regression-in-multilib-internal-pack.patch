@@ -1,0 +1,101 @@
+From acb7bdce9d4959552f17b2df5d96c858e5ea4944 Mon Sep 17 00:00:00 2001
+Message-Id: <acb7bdce9d4959552f17b2df5d96c858e5ea4944.1621955129.git.wallinux@gmail.com>
+From: Heng Guo <heng.guo@windriver.com>
+Date: Wed, 3 Feb 2021 10:15:33 +0800
+Subject: [PATCH] lttng-tools: fix regression in multilib internal packed
+ structures
+
+When lttng ptest runs with commit:
+c15052db92a34ddd5f2e0d52df8c05a0b1f16bd1, test_event_perf failed because
+empty context is in trace log, but not correct "perf:thread:page-fault".
+
+A union type data is using in lttng_event_context_packed, for different
+context type - perf context and app context. In
+COPY_EVENT_CONTEXT_PACKED, the perf_counter would be overwritten by
+app_ctx, if the context type is one of perf.
+
+So update COPY_EVENT_CONTEXT_PACKED to process context data by its
+context type.
+
+Signed-off-by: Heng Guo <heng.guo@windriver.com>
+---
+ include/lttng/event-internal.h | 58 ++++++++++++++++++++--------------
+ 1 file changed, 34 insertions(+), 24 deletions(-)
+
+diff --git a/include/lttng/event-internal.h b/include/lttng/event-internal.h
+index f3f5f9f35..68af49363 100644
+--- a/include/lttng/event-internal.h
++++ b/include/lttng/event-internal.h
+@@ -95,35 +95,45 @@ struct lttng_event_packed {
+ 	} attr;
+ } LTTNG_PACKED;
+ 
+-#define COPY_EVENT_CONTEXT_PACKED(dst, src) \
+-	do { \
+-		(dst)->ctx = (src)->ctx; \
+-		(dst)->u.perf_counter.type = (src)->u.perf_counter.type; \
+-		(dst)->u.perf_counter.config = (src)->u.perf_counter.config; \
+-		memcpy((dst)->u.perf_counter.name, (src)->u.perf_counter.name, \
+-		       LTTNG_SYMBOL_NAME_LEN);\
+-		(dst)->u.app_ctx.provider_name = (src)->u.app_ctx.provider_name; \
+-		(dst)->u.app_ctx.ctx_name = (src)->u.app_ctx.ctx_name; \
++#define COPY_EVENT_CONTEXT_PACKED(dst, src)				\
++	do {								\
++		(dst)->ctx = (src)->ctx;				\
++		switch ((src)->ctx) {					\
++		case LTTNG_EVENT_CONTEXT_PERF_COUNTER:			\
++		case LTTNG_EVENT_CONTEXT_PERF_CPU_COUNTER:		\
++		case LTTNG_EVENT_CONTEXT_PERF_THREAD_COUNTER:		\
++			(dst)->u.perf_counter.type = (src)->u.perf_counter.type; \
++			(dst)->u.perf_counter.config = (src)->u.perf_counter.config; \
++			memcpy((dst)->u.perf_counter.name, (src)->u.perf_counter.name, \
++			       LTTNG_SYMBOL_NAME_LEN);			\
++			break;						\
++		case LTTNG_EVENT_CONTEXT_APP_CONTEXT:			\
++			(dst)->u.app_ctx.provider_name = (src)->u.app_ctx.provider_name; \
++			(dst)->u.app_ctx.ctx_name = (src)->u.app_ctx.ctx_name; \
++			break;						\
++		default:						\
++			break;						\
++		}							\
+ 	} while (0)
+ 
+-#define COPY_EVENT_PACKED(dst, src) \
+-	do { \
+-		(dst)->type = (src)->type; \
++#define COPY_EVENT_PACKED(dst, src)					\
++	do {								\
++		(dst)->type = (src)->type;				\
+ 		memcpy((dst)->name, (src)->name, LTTNG_SYMBOL_NAME_LEN); \
+-		(dst)->loglevel_type = (src)->loglevel_type; \
+-		(dst)->loglevel = (src)->loglevel; \
+-		(dst)->enabled = (src)->enabled; \
+-		(dst)->pid = (src)->pid; \
+-		(dst)->filter = (src)->filter; \
+-		(dst)->exclusion = (src)->exclusion; \
+-		(dst)->flags = (src)->flags; \
+-		(dst)->extended.ptr = (src)->extended.ptr; \
+-		(dst)->attr.probe.addr = (src)->attr.probe.addr; \
+-		(dst)->attr.probe.offset = (src)->attr.probe.offset; \
++		(dst)->loglevel_type = (src)->loglevel_type;		\
++		(dst)->loglevel = (src)->loglevel;			\
++		(dst)->enabled = (src)->enabled;			\
++		(dst)->pid = (src)->pid;				\
++		(dst)->filter = (src)->filter;				\
++		(dst)->exclusion = (src)->exclusion;			\
++		(dst)->flags = (src)->flags;				\
++		(dst)->extended.ptr = (src)->extended.ptr;		\
++		(dst)->attr.probe.addr = (src)->attr.probe.addr;	\
++		(dst)->attr.probe.offset = (src)->attr.probe.offset;	\
+ 		memcpy((dst)->attr.probe.symbol_name, (src)->attr.probe.symbol_name, \
+-		       LTTNG_SYMBOL_NAME_LEN); \
++		       LTTNG_SYMBOL_NAME_LEN);				\
+ 		memcpy((dst)->attr.ftrace.symbol_name, (src)->attr.ftrace.symbol_name, \
+-		       LTTNG_SYMBOL_NAME_LEN); \
++		       LTTNG_SYMBOL_NAME_LEN);				\
+ 	} while (0)
+ 
+ #endif /* LTTNG_EVENT_INTERNAL_H */
+-- 
+2.31.1
+

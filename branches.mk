@@ -9,7 +9,7 @@ branches += rcs10
 
 rcs12_userspace-rcu=v0.12.2
 rcs12_lttng-ust=v2.12.2
-rcs12_lttng-tools=v2.12.3
+rcs12_lttng-tools=v2.12.4
 rcs12_babeltrace=v2.0.4
 branches += rcs12
 

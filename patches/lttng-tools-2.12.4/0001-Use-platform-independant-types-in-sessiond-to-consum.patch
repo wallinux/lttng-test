@@ -1,0 +1,442 @@
+From 9480e0914fa9490642594e9b118abf9e933f1fc4 Mon Sep 17 00:00:00 2001
+Message-Id: <9480e0914fa9490642594e9b118abf9e933f1fc4.1621951717.git.wallinux@gmail.com>
+From: Vasile-Laurentiu Stanimir <vasile-laurentiu.stanimir@windriver.com>
+Date: Mon, 18 Feb 2019 19:54:25 +0200
+Subject: [PATCH] Use platform-independant types in sessiond to consumerd
+ communication
+
+Signed-off-by: Anders Wallin <wallinux@gmail.com>
+---
+ src/bin/lttng-sessiond/consumer.c            |   5 +-
+ src/common/kernel-consumer/kernel-consumer.c |  11 +-
+ src/common/sessiond-comm/sessiond-comm.c     | 186 +++++++++++++++++++
+ src/common/sessiond-comm/sessiond-comm.h     | 110 ++++++++++-
+ src/common/ust-consumer/ust-consumer.c       |  11 +-
+ 5 files changed, 318 insertions(+), 5 deletions(-)
+
+diff --git a/src/bin/lttng-sessiond/consumer.c b/src/bin/lttng-sessiond/consumer.c
+index 552ff95cb..2f67d186e 100644
+--- a/src/bin/lttng-sessiond/consumer.c
++++ b/src/bin/lttng-sessiond/consumer.c
+@@ -1179,7 +1179,10 @@ int consumer_send_relayd_socket(struct consumer_socket *consumer_sock,
+ 	msg.u.relayd_sock.net_index = consumer->net_seq_index;
+ 	msg.u.relayd_sock.type = type;
+ 	msg.u.relayd_sock.session_id = session_id;
+-	memcpy(&msg.u.relayd_sock.sock, rsock, sizeof(msg.u.relayd_sock.sock));
++	ret = lttcomm_relayd_sock_serialize(rsock, &msg.u.relayd_sock.sock);
++	if (ret) {
++		goto error;
++	}
+ 
+ 	DBG3("Sending relayd sock info to consumer on %d", *consumer_sock->fd_ptr);
+ 	ret = consumer_send_msg(consumer_sock, &msg);
+diff --git a/src/common/kernel-consumer/kernel-consumer.c b/src/common/kernel-consumer/kernel-consumer.c
+index 245f4ee46..0b6498d62 100644
+--- a/src/common/kernel-consumer/kernel-consumer.c
++++ b/src/common/kernel-consumer/kernel-consumer.c
+@@ -475,10 +475,19 @@ int lttng_kconsumer_recv_cmd(struct lttng_consumer_local_data *ctx,
+ 	switch (msg.cmd_type) {
+ 	case LTTNG_CONSUMER_ADD_RELAYD_SOCKET:
+ 	{
++		struct lttcomm_relayd_sock relayd_sock;
++
++		ret = lttcomm_relayd_sock_deserialize(&msg.u.relayd_sock.sock,
++						      &relayd_sock);
++		if (ret) {
++			/* Received an invalid relayd_sock. */
++			goto error_fatal;
++		}
++
+ 		/* Session daemon status message are handled in the following call. */
+ 		consumer_add_relayd_socket(msg.u.relayd_sock.net_index,
+ 				msg.u.relayd_sock.type, ctx, sock, consumer_sockpoll,
+-				&msg.u.relayd_sock.sock, msg.u.relayd_sock.session_id,
++				&relayd_sock, msg.u.relayd_sock.session_id,
+ 				msg.u.relayd_sock.relayd_session_id);
+ 		goto end_nosignal;
+ 	}
+diff --git a/src/common/sessiond-comm/sessiond-comm.c b/src/common/sessiond-comm/sessiond-comm.c
+index 9f00ae181..3a120c1e9 100644
+--- a/src/common/sessiond-comm/sessiond-comm.c
++++ b/src/common/sessiond-comm/sessiond-comm.c
+@@ -17,6 +17,7 @@
+ #include <unistd.h>
+ #include <errno.h>
+ #include <inttypes.h>
++#include <endian.h>
+ 
+ #include <common/common.h>
+ 
+@@ -65,6 +66,191 @@ static const char *lttcomm_readable_code[] = {
+ 
+ static unsigned long network_timeout;
+ 
++LTTNG_HIDDEN
++int sockaddr_in_serialize(const struct sockaddr_in *src,
++			  struct sockaddr_in_serialized *dst)
++{
++	assert(src && dst);
++	dst->sin_family = htobe32((uint32_t) src->sin_family);
++	dst->sin_port = htobe16((uint16_t) src->sin_port);
++	dst->sin_addr.s_addr = htobe32(src->sin_addr.s_addr);
++	return 0;
++}
++
++LTTNG_HIDDEN
++int sockaddr_in_deserialize(const struct sockaddr_in_serialized *src,
++			    struct sockaddr_in *dst)
++{
++	assert(src && dst);
++	dst->sin_family = (sa_family_t) be32toh(src->sin_family);
++	dst->sin_port = (in_port_t) be16toh(src->sin_port);
++	dst->sin_addr.s_addr = be32toh(src->sin_addr.s_addr);
++	return 0;
++}
++
++LTTNG_HIDDEN
++int sockaddr_in6_serialize(const struct sockaddr_in6 *src,
++			   struct sockaddr_in6_serialized *dst)
++{
++	assert(src && dst);
++
++	dst->sin6_family = htobe32((uint32_t) src->sin6_family);
++	dst->sin6_port = htobe16((uint16_t) src->sin6_port);
++	dst->sin6_flowinfo = htobe32(src->sin6_flowinfo);
++	memcpy(&dst->sin6_addr._s6_addr, src->sin6_addr.s6_addr,
++	       sizeof(dst->sin6_addr._s6_addr));
++	dst->sin6_scope_id = htobe32(src->sin6_scope_id);
++	return 0;
++}
++
++LTTNG_HIDDEN
++int sockaddr_in6_deserialize(const struct sockaddr_in6_serialized *src,
++			     struct sockaddr_in6 *dst)
++{
++	assert(src && dst);
++
++	dst->sin6_family = (sa_family_t) be32toh(src->sin6_family);
++	dst->sin6_port = (in_port_t) be16toh(src->sin6_port);
++	dst->sin6_flowinfo = be32toh(src->sin6_flowinfo);
++	memcpy(&dst->sin6_addr.s6_addr, src->sin6_addr._s6_addr,
++	       sizeof(dst->sin6_addr.s6_addr));
++	dst->sin6_scope_id = be32toh(src->sin6_scope_id);
++	return 0;
++}
++
++LTTNG_HIDDEN
++int lttcomm_sockaddr_serialize(const struct lttcomm_sockaddr *src,
++			       struct lttcomm_sockaddr_serialized *dst)
++{
++	int ret = 0;
++
++	assert(src && dst);
++
++	dst->type = (int32_t) htobe32((uint32_t) src->type);
++
++	switch (src->type) {
++	case LTTCOMM_INET:
++	{
++		sockaddr_in_serialize(&src->addr.sin,
++				      &dst->addr.sin);
++		break;
++	}
++	case LTTCOMM_INET6:
++	{
++		sockaddr_in6_serialize(&src->addr.sin6,
++				       &dst->addr.sin6);
++		break;
++	}
++	default:
++		ret = -EINVAL;
++		break;
++	}
++
++	return ret;
++}
++
++LTTNG_HIDDEN
++int lttcomm_sockaddr_deserialize(const struct lttcomm_sockaddr_serialized *src,
++				 struct lttcomm_sockaddr *dst)
++{
++	int ret = 0;
++
++	assert(src && dst);
++
++	dst->type = (enum lttcomm_sock_domain) be32toh(src->type);
++
++	switch (dst->type) {
++	case LTTCOMM_INET:
++	{
++		sockaddr_in_deserialize(&src->addr.sin,
++					&dst->addr.sin);
++		break;
++	}
++	case LTTCOMM_INET6:
++	{
++		sockaddr_in6_deserialize(&src->addr.sin6,
++					 &dst->addr.sin6);
++		break;
++	}
++	default:
++		ret = -EINVAL;
++		break;
++	}
++
++	return ret;
++}
++
++LTTNG_HIDDEN
++int lttcomm_sock_serialize(const struct lttcomm_sock *src,
++			   struct lttcomm_sock_serialized *dst)
++{
++	int ret;
++
++	assert(src && dst);
++
++	dst->fd = (int32_t) htobe32(src->fd);
++	if (src->proto != LTTCOMM_SOCK_UDP &&
++	    src->proto != LTTCOMM_SOCK_TCP) {
++		/* Code flow error. */
++		assert(0);
++	}
++	dst->proto = (int32_t) htobe32((uint32_t) src->proto);
++	ret = lttcomm_sockaddr_serialize(&src->sockaddr, &dst->sockaddr);
++
++	return ret;
++}
++
++LTTNG_HIDDEN
++int lttcomm_sock_deserialize(const struct lttcomm_sock_serialized *src,
++			     struct lttcomm_sock *dst)
++{
++	int ret;
++
++	assert(src && dst);
++
++	dst->fd = be32toh((uint32_t) src->fd);
++	dst->proto = (enum lttcomm_sock_proto) be32toh(src->proto);
++	if (dst->proto != LTTCOMM_SOCK_UDP &&
++	    dst->proto != LTTCOMM_SOCK_TCP) {
++		ret = -EINVAL;
++		goto end;
++	}
++	dst->ops = NULL;
++	ret = lttcomm_sockaddr_deserialize(&src->sockaddr, &dst->sockaddr);
++
++end:
++	return ret;
++}
++
++LTTNG_HIDDEN
++int lttcomm_relayd_sock_serialize(const struct lttcomm_relayd_sock *src,
++				  struct lttcomm_relayd_sock_serialized *dst)
++{
++	int ret;
++
++	assert(src && dst);
++	dst->major = htobe32(src->major);
++	dst->minor = htobe32(src->minor);
++	ret = lttcomm_sock_serialize(&src->sock, &dst->sock);
++
++	return ret;
++}
++
++LTTNG_HIDDEN
++int lttcomm_relayd_sock_deserialize(
++	const struct lttcomm_relayd_sock_serialized *src,
++	struct lttcomm_relayd_sock *dst)
++{
++	int ret;
++
++	assert(src && dst);
++	dst->major = be32toh(src->major);
++	dst->minor = be32toh(src->minor);
++	ret = lttcomm_sock_deserialize(&src->sock, &dst->sock);
++
++	return ret;
++}
++
+ /*
+  * Return ptr to string representing a human readable error code from the
+  * lttcomm_return_code enum.
+diff --git a/src/common/sessiond-comm/sessiond-comm.h b/src/common/sessiond-comm/sessiond-comm.h
+index cca48d6ab..83014f256 100644
+--- a/src/common/sessiond-comm/sessiond-comm.h
++++ b/src/common/sessiond-comm/sessiond-comm.h
+@@ -224,15 +224,101 @@ struct lttcomm_sockaddr {
+ 		struct sockaddr_in sin;
+ 		struct sockaddr_in6 sin6;
+ 	} addr;
++};
++
++/*
++ * Serialized version of the sockaddr_in system structure (may only be used
++ * for communication).
++ * Fields are fixed-size, big endian and packed.
++ */
++struct sockaddr_in_serialized {
++	uint32_t sin_family;
++	uint16_t sin_port;
++	struct in_addr_serialized {
++		uint32_t s_addr;
++	} LTTNG_PACKED sin_addr;
++} LTTNG_PACKED;
++
++extern
++int sockaddr_in_serialize(const struct sockaddr_in *src,
++			  struct sockaddr_in_serialized *dst);
++extern
++int sockaddr_in_deserialize(const struct sockaddr_in_serialized *src,
++			    struct sockaddr_in *dst);
++
++/*
++ * Serialized version of the sockaddr_in6 system structure (may only be used
++ * for communication).
++ * Fields are fixed-size, big endian and packed.
++ */
++struct sockaddr_in6_serialized {
++	uint32_t sin6_family;
++	uint16_t sin6_port;
++	uint32_t sin6_flowinfo;
++	struct in6_addr_serialized {
++		/*
++		 * Prefixing with "_" since s6_addr is a "DEFINE"
++		 * which clashes with this.
++		 */
++		uint8_t _s6_addr[16];
++	} LTTNG_PACKED sin6_addr;
++	uint32_t sin6_scope_id;
++} LTTNG_PACKED;
++
++extern
++int sockaddr_in6_serialize(const struct sockaddr_in6 *src,
++			   struct sockaddr_in6_serialized *dst);
++extern
++int sockaddr_in6_deserialize(const struct sockaddr_in6_serialized *src,
++			     struct sockaddr_in6 *dst);
++
++/*
++ * Serialized version of struct lttcomm_sockaddr (may be used for
++ * communication only).
++ * The struct and its members are packed and its fields are fixed-size, big
++ * endian.
++ */
++struct lttcomm_sockaddr_serialized {
++	int32_t type; /* Maps to enum lttcomm_sock_domain */
++	union {
++		struct sockaddr_in_serialized sin;
++		struct sockaddr_in6_serialized sin6;
++	} addr;
+ } LTTNG_PACKED;
+ 
++extern
++int sockaddr_in6_serialize(const struct sockaddr_in6 *src,
++			   struct sockaddr_in6_serialized *dst);
++extern
++int sockaddr_in6_deserialize(const struct sockaddr_in6_serialized *src,
++			     struct sockaddr_in6 *dst);
++
++/* For internal use only */
+ struct lttcomm_sock {
+ 	int32_t fd;
+ 	enum lttcomm_sock_proto proto;
+ 	struct lttcomm_sockaddr sockaddr;
+ 	const struct lttcomm_proto_ops *ops;
++};
++
++/*
++ * Serialized version of struct lttcomm_sock (may be used for
++ * communication only).
++ * Fields are fixed-size, big endian. Structure is packed.
++ */
++struct lttcomm_sock_serialized {
++	int32_t fd;
++	int32_t proto; /* Maps to enum lttcomm_sock_proto */
++	struct lttcomm_sockaddr_serialized sockaddr;
+ } LTTNG_PACKED;
+ 
++extern
++int lttcomm_sock_serialize(const struct lttcomm_sock *src,
++			   struct lttcomm_sock_serialized *dst);
++extern
++int lttcomm_sock_deserialize(const struct lttcomm_sock_serialized *src,
++			     struct lttcomm_sock *dst);
++
+ /*
+  * Relayd sock. Adds the protocol version to use for the communications with
+  * the relayd.
+@@ -241,8 +327,28 @@ struct lttcomm_relayd_sock {
+ 	struct lttcomm_sock sock;
+ 	uint32_t major;
+ 	uint32_t minor;
++};
++
++/*
++ * Serialized version of struct lttcomm_relayd_sock (may be used for
++ * communications only).
++ * Fields are fixed-size, big endian. Structure is packed.
++ */
++struct lttcomm_relayd_sock_serialized {
++	struct lttcomm_sock_serialized sock;
++	uint32_t major;
++	uint32_t minor;
+ } LTTNG_PACKED;
+ 
++extern
++int lttcomm_relayd_sock_serialize(
++	const struct lttcomm_relayd_sock *src,
++	struct lttcomm_relayd_sock_serialized *dst);
++extern
++int lttcomm_relayd_sock_deserialize(
++	const struct lttcomm_relayd_sock_serialized *src,
++	struct lttcomm_relayd_sock *dst);
++
+ struct lttcomm_net_family {
+ 	int family;
+ 	int (*create) (struct lttcomm_sock *sock, int type, int proto);
+@@ -551,7 +657,7 @@ struct lttcomm_consumer_msg {
+ 			uint64_t net_index;
+ 			enum lttng_stream_type type;
+ 			/* Open socket to the relayd */
+-			struct lttcomm_relayd_sock sock;
++			struct lttcomm_relayd_sock_serialized sock;
+ 			/* Tracing session id associated to the relayd. */
+ 			uint64_t session_id;
+ 			/* Relayd session id, only used with control socket. */
+@@ -569,7 +675,7 @@ struct lttcomm_consumer_msg {
+ 			int32_t overwrite;			/* 1: overwrite, 0: discard */
+ 			uint32_t switch_timer_interval;		/* usec */
+ 			uint32_t read_timer_interval;		/* usec */
+-			unsigned int live_timer_interval;	/* usec */
++			uint64_t live_timer_interval;	        /* usec */
+ 			uint8_t is_live;			/* is part of a live session */
+ 			uint32_t monitor_timer_interval;	/* usec */
+ 			int32_t output;				/* splice, mmap */
+diff --git a/src/common/ust-consumer/ust-consumer.c b/src/common/ust-consumer/ust-consumer.c
+index c5b445df8..bdd98c1dd 100644
+--- a/src/common/ust-consumer/ust-consumer.c
++++ b/src/common/ust-consumer/ust-consumer.c
+@@ -1427,10 +1427,19 @@ int lttng_ustconsumer_recv_cmd(struct lttng_consumer_local_data *ctx,
+ 	switch (msg.cmd_type) {
+ 	case LTTNG_CONSUMER_ADD_RELAYD_SOCKET:
+ 	{
++		struct lttcomm_relayd_sock relayd_sock;
++
++		ret = lttcomm_relayd_sock_deserialize(&msg.u.relayd_sock.sock,
++						      &relayd_sock);
++		if (ret) {
++			/* Received an invalid relayd_sock. */
++			goto error_fatal;
++		}
++
+ 		/* Session daemon status message are handled in the following call. */
+ 		consumer_add_relayd_socket(msg.u.relayd_sock.net_index,
+ 				msg.u.relayd_sock.type, ctx, sock, consumer_sockpoll,
+-				&msg.u.relayd_sock.sock, msg.u.relayd_sock.session_id,
++				&relayd_sock, msg.u.relayd_sock.session_id,
+ 				msg.u.relayd_sock.relayd_session_id);
+ 		goto end_nosignal;
+ 	}
+-- 
+2.31.1
+

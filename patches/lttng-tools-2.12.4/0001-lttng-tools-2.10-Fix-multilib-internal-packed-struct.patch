@@ -1,0 +1,782 @@
+From ccad82b483ca42b4d49d8db86b91405ff6e88821 Mon Sep 17 00:00:00 2001
+Message-Id: <ccad82b483ca42b4d49d8db86b91405ff6e88821.1622115173.git.wallinux@gmail.com>
+From: Vasile-Laurentiu Stanimir <vasile-laurentiu.stanimir@windriver.com>
+Date: Thu, 17 Dec 2020 10:54:55 +0200
+Subject: [PATCH] lttng-tools 2.10: Fix multilib internal packed structures
+
+Create internal packed structures for lttng_channel, lttng_event and
+lttng_event_context and use it in communication between lttng-ctl
+and session daemon
+
+Signed-off-by: Vasile-Laurentiu Stanimir <vasile-laurentiu.stanimir@windriver.com>
+---
+ include/lttng/channel-internal.h         |  42 +++++++++
+ include/lttng/event-internal.h           | 110 +++++++++++++++++++++++
+ include/lttng/snapshot-internal.h        |   3 +-
+ src/bin/lttng-sessiond/client.c          |  56 +++++++++---
+ src/bin/lttng-sessiond/cmd.c             |  32 +++----
+ src/bin/lttng-sessiond/cmd.h             |   4 +-
+ src/common/sessiond-comm/sessiond-comm.h |  13 +--
+ src/lib/lttng-ctl/lttng-ctl.c            |  69 +++++++++++---
+ 8 files changed, 279 insertions(+), 50 deletions(-)
+
+diff --git a/include/lttng/channel-internal.h b/include/lttng/channel-internal.h
+index 04b19322f..39446f9b8 100644
+--- a/include/lttng/channel-internal.h
++++ b/include/lttng/channel-internal.h
+@@ -17,4 +17,46 @@ struct lttng_channel_extended {
+ 	int64_t blocking_timeout;
+ } LTTNG_PACKED;
+ 
++/* internal packed structures for lttng_channel_attr and lttng_channel */
++struct lttng_channel_attr_packed {
++	int overwrite;                      /* -1: session default, 1: overwrite, 0: discard */
++	uint64_t subbuf_size;               /* bytes, power of 2 */
++	uint64_t num_subbuf;                /* power of 2 */
++	unsigned int switch_timer_interval; /* usec */
++	unsigned int read_timer_interval;   /* usec */
++	enum lttng_event_output output;     /* splice, mmap */
++	/* LTTng 2.1 padding limit */
++	uint64_t tracefile_size;            /* bytes */
++	uint64_t tracefile_count;           /* number of tracefiles */
++	/* LTTng 2.3 padding limit */
++	unsigned int live_timer_interval;   /* usec */
++	/* LTTng 2.7 padding limit */
++	union {
++		uint64_t padding;
++		void *ptr;
++	} extended;
++} LTTNG_PACKED;
++
++struct lttng_channel_packed {
++	char name[LTTNG_SYMBOL_NAME_LEN];
++	uint32_t enabled;
++	struct lttng_channel_attr_packed attr;
++} LTTNG_PACKED;
++
++#define COPY_CHANNEL_PACKED(dst, src) \
++	do { \
++		memcpy((dst)->name, (src)->name, LTTNG_SYMBOL_NAME_LEN); \
++		(dst)->enabled = (src)->enabled; \
++		(dst)->attr.overwrite = (src)->attr.overwrite; \
++		(dst)->attr.subbuf_size = (src)->attr.subbuf_size; \
++		(dst)->attr.num_subbuf = (src)->attr.num_subbuf; \
++		(dst)->attr.switch_timer_interval = (src)->attr.switch_timer_interval; \
++		(dst)->attr.read_timer_interval = (src)->attr.read_timer_interval; \
++		(dst)->attr.output = (src)->attr.output; \
++		(dst)->attr.tracefile_size = (src)->attr.tracefile_size; \
++		(dst)->attr.tracefile_count = (src)->attr.tracefile_count; \
++		(dst)->attr.live_timer_interval = (src)->attr.live_timer_interval; \
++		(dst)->attr.extended.ptr = (src)->attr.extended.ptr; \
++	} while (0)
++
+ #endif /* LTTNG_CHANNEL_INTERNAL_H */
+diff --git a/include/lttng/event-internal.h b/include/lttng/event-internal.h
+index b3df4c9c2..a3c9ffbda 100644
+--- a/include/lttng/event-internal.h
++++ b/include/lttng/event-internal.h
+@@ -36,4 +36,114 @@ struct lttng_event_extended {
+ LTTNG_HIDDEN
+ struct lttng_event *lttng_event_copy(const struct lttng_event *event);
+ 
++/* Internal packed structures */
++
++struct lttng_event_perf_counter_ctx_packed {
++	uint32_t type;
++	uint64_t config;
++	char name[LTTNG_SYMBOL_NAME_LEN];
++} LTTNG_PACKED;
++
++struct lttng_event_context_packed {
++	enum lttng_event_context_type ctx;
++
++	union {
++		struct lttng_event_perf_counter_ctx_packed perf_counter;
++		struct {
++			char *provider_name;
++			char *ctx_name;
++		} app_ctx;
++	} u;
++} LTTNG_PACKED;
++
++struct lttng_event_probe_attr_packed {
++	uint64_t addr;
++	uint64_t offset;
++	char symbol_name[LTTNG_SYMBOL_NAME_LEN];
++} LTTNG_PACKED;
++
++struct lttng_event_function_attr_packed {
++	char symbol_name[LTTNG_SYMBOL_NAME_LEN];
++} LTTNG_PACKED;
++
++struct lttng_event_packed {
++	/* Offset 0 */
++	enum lttng_event_type type;
++
++	/* Offset 4 */
++	char name[LTTNG_SYMBOL_NAME_LEN];
++
++	/* Offset 260 */
++	enum lttng_loglevel_type loglevel_type;
++
++	/* Offset 264 */
++	int loglevel;
++
++	/* Offset 268 */
++	int32_t enabled;	/* Does not apply: -1 */
++
++	/* Offset 272 */
++	pid_t pid;
++
++	/* Offset 276 */
++	unsigned char filter;	/* filter enabled ? */
++
++	/* Offset 277 */
++	unsigned char exclusion; /* exclusions added ? */
++
++	/* Offset 278 */
++	char padding2[2];
++
++	/* Offset 280 */
++	/* Event flag, from 2.6 and above. */
++	enum lttng_event_flag flags;
++
++	/* Offset 284 */
++	char padding[4];
++
++	/* Offset 288 */
++	union {
++		uint64_t padding;
++		void *ptr;
++	} extended;
++
++	/* Offset 296 */
++	/* Per event type configuration */
++	union {
++		struct lttng_event_probe_attr_packed probe;
++		struct lttng_event_function_attr_packed ftrace;
++	} attr;
++} LTTNG_PACKED;
++
++#define COPY_EVENT_CONTEXT_PACKED(dst, src) \
++	do { \
++		(dst)->ctx = (src)->ctx; \
++		(dst)->u.perf_counter.type = (src)->u.perf_counter.type; \
++		(dst)->u.perf_counter.config = (src)->u.perf_counter.config; \
++		memcpy((dst)->u.perf_counter.name, (src)->u.perf_counter.name, \
++		       LTTNG_SYMBOL_NAME_LEN);\
++		(dst)->u.app_ctx.provider_name = (src)->u.app_ctx.provider_name; \
++		(dst)->u.app_ctx.ctx_name = (src)->u.app_ctx.ctx_name; \
++	} while (0)
++
++#define COPY_EVENT_PACKED(dst, src) \
++	do { \
++		(dst)->type = (src)->type; \
++		memcpy((dst)->name, (src)->name, LTTNG_SYMBOL_NAME_LEN); \
++		(dst)->loglevel_type = (src)->loglevel_type; \
++		(dst)->loglevel = (src)->loglevel; \
++		(dst)->enabled = (src)->enabled; \
++		(dst)->pid = (src)->pid; \
++		(dst)->filter = (src)->filter; \
++		(dst)->exclusion = (src)->exclusion; \
++		(dst)->flags = (src)->flags; \
++		(dst)->extended.ptr = (src)->extended.ptr; \
++		(dst)->attr.probe.addr = (src)->attr.probe.addr; \
++		(dst)->attr.probe.offset = (src)->attr.probe.offset; \
++		memcpy((dst)->attr.probe.symbol_name, (src)->attr.probe.symbol_name, \
++		       LTTNG_SYMBOL_NAME_LEN); \
++		memcpy((dst)->attr.ftrace.symbol_name, (src)->attr.ftrace.symbol_name, \
++		       LTTNG_SYMBOL_NAME_LEN); \
++	} while (0)
++
+ #endif /* LTTNG_EVENT_INTERNAL_H */
+diff --git a/include/lttng/snapshot-internal.h b/include/lttng/snapshot-internal.h
+index 72d492237..1c6a43746 100644
+--- a/include/lttng/snapshot-internal.h
++++ b/include/lttng/snapshot-internal.h
+@@ -11,6 +11,7 @@
+ #include <limits.h>
+ #include <stdint.h>
+ #include <lttng/constant.h>
++#include <common/macros.h>
+ 
+ /*
+  * Object used for the snapshot API. This is opaque to the public library.
+@@ -33,7 +34,7 @@ struct lttng_snapshot_output {
+ 	char ctrl_url[PATH_MAX];
+ 	/* Destination of the output. See lttng(1) for URL format. */
+ 	char data_url[PATH_MAX];
+-};
++} LTTNG_PACKED;
+ 
+ /*
+  * Snapshot output list object opaque to the user.
+diff --git a/src/bin/lttng-sessiond/client.c b/src/bin/lttng-sessiond/client.c
+index 9f9afa25a..b3ec1c6cd 100644
+--- a/src/bin/lttng-sessiond/client.c
++++ b/src/bin/lttng-sessiond/client.c
+@@ -16,6 +16,7 @@
+ #include <common/tracker.h>
+ #include <common/unix.h>
+ #include <common/utils.h>
++#include <lttng/channel-internal.h>
+ #include <lttng/event-internal.h>
+ #include <lttng/session-descriptor-internal.h>
+ #include <lttng/session-internal.h>
+@@ -1137,10 +1138,13 @@ skip_domain:
+ 		 * cmd_add_context assumes ownership of the provider and context
+ 		 * names.
+ 		 */
++		struct lttng_event_context ctx;
++
++		COPY_EVENT_CONTEXT_PACKED(&ctx, &cmd_ctx->lsm->u.context.ctx);
+ 		ret = cmd_add_context(cmd_ctx->session,
+ 				cmd_ctx->lsm->domain.type,
+ 				cmd_ctx->lsm->u.context.channel_name,
+-				ALIGNED_CONST_PTR(cmd_ctx->lsm->u.context.ctx),
++				ALIGNED_CONST_PTR(&ctx),
+ 				kernel_poll_pipe[1]);
+ 
+ 		cmd_ctx->lsm->u.context.ctx.u.app_ctx.provider_name = NULL;
+@@ -1161,6 +1165,7 @@ error_add_context:
+ 	}
+ 	case LTTNG_DISABLE_EVENT:
+ 	{
++		struct lttng_event ev = {};
+ 
+ 		/*
+ 		 * FIXME: handle filter; for now we just receive the filter's
+@@ -1188,18 +1193,23 @@ error_add_context:
+ 				count -= (size_t) ret;
+ 			}
+ 		}
++		COPY_EVENT_PACKED(&ev, &cmd_ctx->lsm->u.disable.event);
+ 		ret = cmd_disable_event(cmd_ctx->session, cmd_ctx->lsm->domain.type,
+ 				cmd_ctx->lsm->u.disable.channel_name,
+-				ALIGNED_CONST_PTR(cmd_ctx->lsm->u.disable.event));
++				ALIGNED_CONST_PTR(&ev));
+ 		break;
+ 	}
+ 	case LTTNG_ENABLE_CHANNEL:
+ 	{
++		struct lttng_channel channel;
++
+ 		cmd_ctx->lsm->u.channel.chan.attr.extended.ptr =
+ 				(struct lttng_channel_extended *) &cmd_ctx->lsm->u.channel.extended;
++
++		COPY_CHANNEL_PACKED(&channel, &cmd_ctx->lsm->u.channel.chan);		
+ 		ret = cmd_enable_channel(cmd_ctx->session,
+ 				ALIGNED_CONST_PTR(cmd_ctx->lsm->domain),
+-				ALIGNED_CONST_PTR(cmd_ctx->lsm->u.channel.chan),
++				ALIGNED_CONST_PTR(&channel),
+ 				kernel_poll_pipe[1]);
+ 		break;
+ 	}
+@@ -1390,6 +1400,7 @@ error_add_context:
+ 	}
+ 	case LTTNG_ENABLE_EVENT:
+ 	{
++		struct lttng_event tmp_ev;
+ 		struct lttng_event *ev = NULL;
+ 		struct lttng_event_exclusion *exclusion = NULL;
+ 		struct lttng_filter_bytecode *bytecode = NULL;
+@@ -1516,10 +1527,12 @@ error_add_context:
+ 			}
+ 		}
+ 
++		COPY_EVENT_PACKED(&tmp_ev, &cmd_ctx->lsm->u.enable.event);
++
+ 		ret = cmd_enable_event(cmd_ctx->session,
+ 				ALIGNED_CONST_PTR(cmd_ctx->lsm->domain),
+ 				cmd_ctx->lsm->u.enable.channel_name,
+-				ev,
++				$tmp_ev,
+ 				filter_expression, bytecode, exclusion,
+ 				kernel_poll_pipe[1]);
+ 		lttng_event_destroy(ev);
+@@ -1528,14 +1541,25 @@ error_add_context:
+ 	case LTTNG_LIST_TRACEPOINTS:
+ 	{
+ 		struct lttng_event *events;
++		struct lttng_event_packed *packed_events = NULL;
++		int i = 0;
++
+ 		ssize_t nb_events;
+ 
+ 		session_lock_list();
+ 		nb_events = cmd_list_tracepoints(cmd_ctx->lsm->domain.type, &events);
++		packed_events = zmalloc(nb_events * sizeof(struct lttng_event_packed));
++		for (i = 0; i < nb_events; i++) {
++			COPY_EVENT_PACKED(&packed_events[i], &events[i]);
++		}
++		
+ 		session_unlock_list();
++		free(events);
++
+ 		if (nb_events < 0) {
+ 			/* Return value is a negative lttng_error_code. */
+ 			ret = -nb_events;
++			free(packed_events);			
+ 			goto error;
+ 		}
+ 
+@@ -1543,9 +1567,9 @@ error_add_context:
+ 		 * Setup lttng message with payload size set to the event list size in
+ 		 * bytes and then copy list into the llm payload.
+ 		 */
+-		ret = setup_lttng_msg_no_cmd_header(cmd_ctx, events,
+-			sizeof(struct lttng_event) * nb_events);
+-		free(events);
++		ret = setup_lttng_msg_no_cmd_header(cmd_ctx, packed_events,
++			sizeof(struct lttng_event_packed) * nb_events);
++		free(packet_events);
+ 
+ 		if (ret < 0) {
+ 			goto setup_error;
+@@ -1588,6 +1612,8 @@ error_add_context:
+ 	{
+ 		struct lttng_event *events;
+ 		ssize_t nb_events;
++		struct lttng_event_packed *packed_events = NULL;
++		int i = 0;
+ 
+ 		nb_events = cmd_list_syscalls(&events);
+ 		if (nb_events < 0) {
+@@ -1596,13 +1622,19 @@ error_add_context:
+ 			goto error;
+ 		}
+ 
++		packed_events = zmalloc(nb_events * sizeof(struct lttng_event_packed));
++		for (i = 0; i < nb_events; i++) {
++			COPY_EVENT_PACKED(&packed_events[i], &events[i]);
++		}
++		free(events);
++		
+ 		/*
+ 		 * Setup lttng message with payload size set to the event list size in
+ 		 * bytes and then copy list into the llm payload.
+ 		 */
+-		ret = setup_lttng_msg_no_cmd_header(cmd_ctx, events,
+-			sizeof(struct lttng_event) * nb_events);
+-		free(events);
++		ret = setup_lttng_msg_no_cmd_header(cmd_ctx, packed_events,
++			sizeof(struct lttng_event_packed) * nb_events);
++		free(packet_events);
+ 
+ 		if (ret < 0) {
+ 			goto setup_error;
+@@ -1707,7 +1739,7 @@ error_add_context:
+ 	case LTTNG_LIST_CHANNELS:
+ 	{
+ 		ssize_t payload_size;
+-		struct lttng_channel *channels = NULL;
++		struct lttng_channel_packed *channels = NULL;
+ 
+ 		payload_size = cmd_list_channels(cmd_ctx->lsm->domain.type,
+ 				cmd_ctx->session, &channels);
+@@ -1731,7 +1763,7 @@ error_add_context:
+ 	case LTTNG_LIST_EVENTS:
+ 	{
+ 		ssize_t nb_event;
+-		struct lttng_event *events = NULL;
++		struct lttng_event_packed *events = NULL;
+ 		struct lttcomm_event_command_header cmd_header;
+ 		size_t total_size;
+ 
+diff --git a/src/bin/lttng-sessiond/cmd.c b/src/bin/lttng-sessiond/cmd.c
+index b608df1e1..80ef7b2d6 100644
+--- a/src/bin/lttng-sessiond/cmd.c
++++ b/src/bin/lttng-sessiond/cmd.c
+@@ -285,7 +285,7 @@ end:
+  * Fill lttng_channel array of all channels.
+  */
+ static ssize_t list_lttng_channels(enum lttng_domain_type domain,
+-		struct ltt_session *session, struct lttng_channel *channels,
++		struct ltt_session *session, struct lttng_channel_packed *channels,
+ 		struct lttng_channel_extended *chan_exts)
+ {
+ 	int i = 0, ret = 0;
+@@ -311,7 +311,7 @@ static ssize_t list_lttng_channels(enum lttng_domain_type domain,
+ 					goto end;
+ 				}
+ 				/* Copy lttng_channel struct to array */
+-				memcpy(&channels[i], kchan->channel, sizeof(struct lttng_channel));
++				COPY_CHANNEL_PACKED(&channels[i], kchan->channel);
+ 				channels[i].enabled = kchan->enabled;
+ 				chan_exts[i].discarded_events =
+ 						discarded_events;
+@@ -493,12 +493,12 @@ end:
+  * Return number of events in list on success or else a negative value.
+  */
+ static int list_lttng_agent_events(struct agent *agt,
+-		struct lttng_event **events, size_t *total_size)
++		struct lttng_event_packed **events, size_t *total_size)
+ {
+ 	int i = 0, ret = 0;
+ 	unsigned int nb_event = 0;
+ 	struct agent_event *event;
+-	struct lttng_event *tmp_events = NULL;
++	struct lttng_event_packed *tmp_events = NULL;
+ 	struct lttng_ht_iter iter;
+ 	size_t extended_len = 0;
+ 	void *extended_at;
+@@ -545,7 +545,7 @@ static int list_lttng_agent_events(struct agent *agt,
+ 	}
+ 
+ 	extended_at = ((uint8_t *) tmp_events) +
+-		nb_event * sizeof(struct lttng_event);
++		nb_event * sizeof(struct lttng_event_packed);
+ 
+ 	rcu_read_lock();
+ 	cds_lfht_for_each_entry(agt->events->ht, &iter.iter, event, node.node) {
+@@ -583,7 +583,7 @@ error:
+  */
+ static int list_lttng_ust_global_events(char *channel_name,
+ 		struct ltt_ust_domain_global *ust_global,
+-		struct lttng_event **events, size_t *total_size)
++		struct lttng_event_packed **events, size_t *total_size)
+ {
+ 	int i = 0, ret = 0;
+ 	unsigned int nb_event = 0;
+@@ -591,7 +591,7 @@ static int list_lttng_ust_global_events(char *channel_name,
+ 	struct lttng_ht_node_str *node;
+ 	struct ltt_ust_channel *uchan;
+ 	struct ltt_ust_event *uevent;
+-	struct lttng_event *tmp;
++	struct lttng_event_packed *tmp;
+ 	size_t extended_len = 0;
+ 	void *extended_at;
+ 
+@@ -639,14 +639,14 @@ static int list_lttng_ust_global_events(char *channel_name,
+ 		goto end;
+ 	}
+ 
+-	*total_size = nb_event * sizeof(struct lttng_event) + extended_len;
++	*total_size = nb_event * sizeof(struct lttng_event_packed) + extended_len;
+ 	tmp = zmalloc(*total_size);
+ 	if (tmp == NULL) {
+ 		ret = -LTTNG_ERR_FATAL;
+ 		goto end;
+ 	}
+ 
+-	extended_at = ((uint8_t *) tmp) + nb_event * sizeof(struct lttng_event);
++	extended_at = ((uint8_t *) tmp) + nb_event * sizeof(struct lttng_event_packed);
+ 
+ 	cds_lfht_for_each_entry(uchan->events->ht, &iter.iter, uevent, node.node) {
+ 		if (uevent->internal) {
+@@ -711,7 +711,7 @@ end:
+  */
+ static int list_lttng_kernel_events(char *channel_name,
+ 		struct ltt_kernel_session *kernel_session,
+-		struct lttng_event **events, size_t *total_size)
++		struct lttng_event_packed **events, size_t *total_size)
+ {
+ 	int i = 0, ret;
+ 	unsigned int nb_event;
+@@ -748,7 +748,7 @@ static int list_lttng_kernel_events(char *channel_name,
+ 		}
+ 	}
+ 
+-	*total_size = nb_event * sizeof(struct lttng_event) + extended_len;
++	*total_size = nb_event * sizeof(struct lttng_event_packed) + extended_len;
+ 	*events = zmalloc(*total_size);
+ 	if (*events == NULL) {
+ 		ret = -LTTNG_ERR_FATAL;
+@@ -756,7 +756,7 @@ static int list_lttng_kernel_events(char *channel_name,
+ 	}
+ 
+ 	extended_at = ((void *) *events) +
+-		nb_event * sizeof(struct lttng_event);
++		nb_event * sizeof(struct lttng_event_packed);
+ 
+ 	/* Kernel channels */
+ 	cds_list_for_each_entry(event, &kchan->events_list.head , list) {
+@@ -3660,7 +3660,7 @@ error:
+  * Command LTTNG_LIST_CHANNELS processed by the client thread.
+  */
+ ssize_t cmd_list_channels(enum lttng_domain_type domain,
+-		struct ltt_session *session, struct lttng_channel **channels)
++		struct ltt_session *session, struct lttng_channel_packed **channels)
+ {
+ 	ssize_t nb_chan = 0, payload_size = 0, ret;
+ 
+@@ -3694,7 +3694,7 @@ ssize_t cmd_list_channels(enum lttng_domain_type domain,
+ 	}
+ 
+ 	if (nb_chan > 0) {
+-		const size_t channel_size = sizeof(struct lttng_channel) +
++		const size_t channel_size = sizeof(struct lttng_channel_packed) +
+ 			sizeof(struct lttng_channel_extended);
+ 		struct lttng_channel_extended *channel_exts;
+ 
+@@ -3706,7 +3706,7 @@ ssize_t cmd_list_channels(enum lttng_domain_type domain,
+ 		}
+ 
+ 		channel_exts = ((void *) *channels) +
+-				(nb_chan * sizeof(struct lttng_channel));
++				(nb_chan * sizeof(struct lttng_channel_packed));
+ 		ret = list_lttng_channels(domain, session, *channels, channel_exts);
+ 		if (ret != LTTNG_OK) {
+ 			free(*channels);
+@@ -3727,7 +3727,7 @@ end:
+  */
+ ssize_t cmd_list_events(enum lttng_domain_type domain,
+ 		struct ltt_session *session, char *channel_name,
+-		struct lttng_event **events, size_t *total_size)
++		struct lttng_event_packed **events, size_t *total_size)
+ {
+ 	int ret = 0;
+ 	ssize_t nb_event = 0;
+diff --git a/src/bin/lttng-sessiond/cmd.h b/src/bin/lttng-sessiond/cmd.h
+index 1be746031..a00882842 100644
+--- a/src/bin/lttng-sessiond/cmd.h
++++ b/src/bin/lttng-sessiond/cmd.h
+@@ -111,9 +111,9 @@ ssize_t cmd_list_domains(struct ltt_session *session,
+ 		struct lttng_domain **domains);
+ ssize_t cmd_list_events(enum lttng_domain_type domain,
+ 		struct ltt_session *session, char *channel_name,
+-		struct lttng_event **events, size_t *total_size);
++		struct lttng_event_packed **events, size_t *total_size);
+ ssize_t cmd_list_channels(enum lttng_domain_type domain,
+-		struct ltt_session *session, struct lttng_channel **channels);
++		struct ltt_session *session, struct lttng_channel_packed **channels);
+ ssize_t cmd_list_domains(struct ltt_session *session,
+ 		struct lttng_domain **domains);
+ void cmd_list_lttng_sessions(struct lttng_session *sessions,
+diff --git a/src/common/sessiond-comm/sessiond-comm.h b/src/common/sessiond-comm/sessiond-comm.h
+index 83014f256..d9a122e45 100644
+--- a/src/common/sessiond-comm/sessiond-comm.h
++++ b/src/common/sessiond-comm/sessiond-comm.h
+@@ -20,6 +20,7 @@
+ #include <lttng/snapshot-internal.h>
+ #include <lttng/save-internal.h>
+ #include <lttng/channel-internal.h>
++#include <lttng/event-internal.h>
+ #include <lttng/trigger/trigger-internal.h>
+ #include <lttng/rotate-internal.h>
+ #include <common/compat/socket.h>
+@@ -384,7 +385,7 @@ struct lttcomm_session_msg {
+ 		/* Event data */
+ 		struct {
+ 			char channel_name[LTTNG_SYMBOL_NAME_LEN];
+-			struct lttng_event event LTTNG_PACKED;
++			struct lttng_event_packed event;
+ 			/* Length of following filter expression. */
+ 			uint32_t expression_len;
+ 			/* Length of following bytecode for filter. */
+@@ -403,7 +404,7 @@ struct lttcomm_session_msg {
+ 		} LTTNG_PACKED enable;
+ 		struct {
+ 			char channel_name[LTTNG_SYMBOL_NAME_LEN];
+-			struct lttng_event event LTTNG_PACKED;
++			struct lttng_event_packed event;
+ 			/* Length of following filter expression. */
+ 			uint32_t expression_len;
+ 			/* Length of following bytecode for filter. */
+@@ -417,14 +418,14 @@ struct lttcomm_session_msg {
+ 		} LTTNG_PACKED disable;
+ 		/* Create channel */
+ 		struct {
+-			struct lttng_channel chan LTTNG_PACKED;
++			struct lttng_channel_packed chan;
+ 			/* struct lttng_channel_extended is already packed. */
+ 			struct lttng_channel_extended extended;
+ 		} LTTNG_PACKED channel;
+ 		/* Context */
+ 		struct {
+ 			char channel_name[LTTNG_SYMBOL_NAME_LEN];
+-			struct lttng_event_context ctx LTTNG_PACKED;
++			struct lttng_event_context_packed ctx;
+ 			uint32_t provider_name_len;
+ 			uint32_t context_name_len;
+ 		} LTTNG_PACKED context;
+@@ -443,11 +444,11 @@ struct lttcomm_session_msg {
+ 			uint32_t size;
+ 		} LTTNG_PACKED uri;
+ 		struct {
+-			struct lttng_snapshot_output output LTTNG_PACKED;
++			struct lttng_snapshot_output output;
+ 		} LTTNG_PACKED snapshot_output;
+ 		struct {
+ 			uint32_t wait;
+-			struct lttng_snapshot_output output LTTNG_PACKED;
++			struct lttng_snapshot_output output;
+ 		} LTTNG_PACKED snapshot_record;
+ 		struct {
+ 			uint32_t nb_uri;
+diff --git a/src/lib/lttng-ctl/lttng-ctl.c b/src/lib/lttng-ctl/lttng-ctl.c
+index 2c2335a28..77ade36e8 100644
+--- a/src/lib/lttng-ctl/lttng-ctl.c
++++ b/src/lib/lttng-ctl/lttng-ctl.c
+@@ -846,7 +846,7 @@ int lttng_add_context(struct lttng_handle *handle,
+ 		memcpy(buf, provider_name, provider_len);
+ 		memcpy(buf + provider_len, ctx_name, ctx_len);
+ 	}
+-	memcpy(&lsm.u.context.ctx, ctx, sizeof(struct lttng_event_context));
++	COPY_EVENT_CONTEXT_PACKED(&lsm.u.context.ctx, ctx);
+ 
+ 	if (ctx->ctx == LTTNG_EVENT_CONTEXT_APP_CONTEXT) {
+ 		/*
+@@ -1149,7 +1149,7 @@ int lttng_enable_event_with_exclusions(struct lttng_handle *handle,
+ 	}
+ 
+ 	COPY_DOMAIN_PACKED(lsm.domain, handle->domain);
+-	memcpy(&lsm.u.enable.event, ev, sizeof(lsm.u.enable.event));
++	COPY_EVENT_PACKED(&lsm.u.enable.event, ev);
+ 
+ 	ret = lttng_strncpy(lsm.session.name, handle->session_name,
+ 			sizeof(lsm.session.name));
+@@ -1346,7 +1346,7 @@ int lttng_disable_event_ext(struct lttng_handle *handle,
+ 	lsm.cmd_type = LTTNG_DISABLE_EVENT;
+ 
+ 	COPY_DOMAIN_PACKED(lsm.domain, handle->domain);
+-	memcpy(&lsm.u.disable.event, ev, sizeof(lsm.u.disable.event));
++	COPY_EVENT_PACKED(&lsm.u.disable.event, ev);
+ 
+ 	ret = lttng_strncpy(lsm.session.name, handle->session_name,
+ 			sizeof(lsm.session.name));
+@@ -1566,7 +1566,7 @@ int lttng_enable_channel(struct lttng_handle *handle,
+ 	}
+ 
+ 	memset(&lsm, 0, sizeof(lsm));
+-	memcpy(&lsm.u.channel.chan, in_chan, sizeof(lsm.u.channel.chan));
++	COPY_CHANNEL_PACKED(&lsm.u.channel.chan, in_chan);
+ 	lsm.u.channel.chan.attr.extended.ptr = NULL;
+ 
+ 	if (!in_chan->attr.extended.ptr) {
+@@ -1669,6 +1669,9 @@ int lttng_list_tracepoints(struct lttng_handle *handle,
+ {
+ 	int ret;
+ 	struct lttcomm_session_msg lsm;
++	struct lttng_event_packed *packed_events = NULL;
++	int i = 0;
++	int no_events = 0;
+ 
+ 	if (handle == NULL) {
+ 		return -LTTNG_ERR_INVALID;
+@@ -1678,11 +1681,24 @@ int lttng_list_tracepoints(struct lttng_handle *handle,
+ 	lsm.cmd_type = LTTNG_LIST_TRACEPOINTS;
+ 	COPY_DOMAIN_PACKED(lsm.domain, handle->domain);
+ 
+-	ret = lttng_ctl_ask_sessiond(&lsm, (void **) events);
++	ret = lttng_ctl_ask_sessiond(&lsm, (void **) packed_events);
+ 	if (ret < 0) {
+ 		return ret;
+ 	}
+ 
++	no_events = ret / sizeof(struct lttng_event_packed);
++	*events = zmalloc(no_events * sizeof(struct lttng_event));
++	if (*events == NULL) {
++		free(packed_events);
++		return -1;
++	}
++
++	for (i = 0; i < no_events; i++) {
++		COPY_EVENT_PACKED(&(*events)[i], &packed_events[i]);
++	}
++
++	free(packed_events);
++
+ 	return ret / sizeof(struct lttng_event);
+ }
+ 
+@@ -1725,6 +1741,9 @@ int lttng_list_syscalls(struct lttng_event **events)
+ {
+ 	int ret;
+ 	struct lttcomm_session_msg lsm;
++	struct lttng_event_packed *packed_events = NULL;
++	int no_events = 0;
++	int i = 0;
+ 
+ 	if (!events) {
+ 		return -LTTNG_ERR_INVALID;
+@@ -1735,12 +1754,25 @@ int lttng_list_syscalls(struct lttng_event **events)
+ 	/* Force kernel domain for system calls. */
+ 	lsm.domain.type = LTTNG_DOMAIN_KERNEL;
+ 
+-	ret = lttng_ctl_ask_sessiond(&lsm, (void **) events);
++	ret = lttng_ctl_ask_sessiond(&lsm, (void **) &packed_events);
+ 	if (ret < 0) {
+ 		return ret;
+ 	}
+ 
+-	return ret / sizeof(struct lttng_event);
++	no_events = ret / sizeof(struct lttng_event_packed);
++	*events = zmalloc(no_events * sizeof(struct lttng_event));
++	if (*events == NULL) {
++		free(packed_events);
++		return -1;
++	}
++
++	for (i = 0; i < no_events; i++) {
++		COPY_EVENT_PACKED(&(*events)[i], &packed_events[i]);
++	}
++
++	free(packed_events);
++
++	return no_events;
+ }
+ 
+ /*
+@@ -2210,10 +2242,11 @@ int lttng_list_channels(struct lttng_handle *handle,
+ {
+ 	int ret;
+ 	size_t channel_count, i;
+-	const size_t channel_size = sizeof(struct lttng_channel) +
++	const size_t channel_size = sizeof(struct lttng_channel_packed) +
+ 			sizeof(struct lttng_channel_extended);
+ 	struct lttcomm_session_msg lsm;
+ 	void *extended_at;
++	struct lttng_channel_packed *packed_channels = NULL;
+ 
+ 	if (handle == NULL) {
+ 		ret = -LTTNG_ERR_INVALID;
+@@ -2231,30 +2264,40 @@ int lttng_list_channels(struct lttng_handle *handle,
+ 
+ 	COPY_DOMAIN_PACKED(lsm.domain, handle->domain);
+ 
+-	ret = lttng_ctl_ask_sessiond(&lsm, (void**) channels);
++	ret = lttng_ctl_ask_sessiond(&lsm, (void **) &packed_channels);
+ 	if (ret < 0) {
+ 		goto end;
+ 	}
+ 
+ 	if (ret % channel_size) {
+ 		ret = -LTTNG_ERR_UNK;
+-		free(*channels);
+-		*channels = NULL;
++		free(packed_channels);
+ 		goto end;
+ 	}
+ 	channel_count = (size_t) ret / channel_size;
+ 
++	*channels = zmalloc(channel_count * sizeof(struct lttng_channel));
++	if (*channels == NULL) {
++		ret = -LTTNG_ERR_UNK;
++		free(packed_channels);
++		goto end;
++	}
++
+ 	/* Set extended info pointers */
+-	extended_at = ((void *) *channels) +
+-			channel_count * sizeof(struct lttng_channel);
++	extended_at = ((void *)packed_channels) +
++				channel_count * sizeof(struct lttng_channel_packed);
+ 	for (i = 0; i < channel_count; i++) {
+ 		struct lttng_channel *chan = &(*channels)[i];
+ 
++		COPY_CHANNEL_PACKED(chan, &packed_channels[i]);
++
+ 		chan->attr.extended.ptr = extended_at;
+ 		extended_at += sizeof(struct lttng_channel_extended);
+ 	}
+ 
+ 	ret = (int) channel_count;
++
++	free(packed_channels);
+ end:
+ 	return ret;
+ }
+-- 
+2.31.1
+
