@@ -1,4 +1,5 @@
-From 98076e07d072c4dda893e4b7ef73a48f9add50f8 Mon Sep 17 00:00:00 2001
+From 23817926f48a04c4282f1d2b36b1445f3b5efd53 Mon Sep 17 00:00:00 2001
+Message-Id: <23817926f48a04c4282f1d2b36b1445f3b5efd53.1621954288.git.wallinux@gmail.com>
 From: Vasile-Laurentiu Stanimir <vasile-laurentiu.stanimir@windriver.com>
 Date: Thu, 17 Dec 2020 10:54:55 +0200
 Subject: [PATCH] lttng-tools 2.10: Fix multilib internal packed structures
@@ -9,23 +10,23 @@ and session daemon
 
 Signed-off-by: Vasile-Laurentiu Stanimir <vasile-laurentiu.stanimir@windriver.com>
 ---
- include/lttng/channel-internal.h              |  45 ++++++
+ include/lttng/channel-internal.h              |  44 ++++++
  .../lttng/condition/buffer-usage-internal.h   |   1 +
- include/lttng/event-internal.h                | 128 ++++++++++++++++++
+ include/lttng/event-internal.h                | 129 ++++++++++++++++++
  include/lttng/snapshot-internal.h             |   3 +-
  src/bin/lttng-sessiond/cmd.c                  |  32 ++---
  src/bin/lttng-sessiond/cmd.h                  |   4 +-
- src/bin/lttng-sessiond/main.c                 |  57 ++++++--
+ src/bin/lttng-sessiond/main.c                 |  58 ++++++--
  src/common/sessiond-comm/agent.h              |   1 +
  src/common/sessiond-comm/relayd.h             |   1 +
  src/common/sessiond-comm/sessiond-comm.h      |  14 +-
  src/lib/lttng-ctl/filter/filter-bytecode.h    |   1 +
- src/lib/lttng-ctl/lttng-ctl.c                 |  91 ++++++++++---
- 12 files changed, 322 insertions(+), 56 deletions(-)
+ src/lib/lttng-ctl/lttng-ctl.c                 |  91 +++++++++---
+ 12 files changed, 323 insertions(+), 56 deletions(-)
  create mode 100644 include/lttng/event-internal.h
 
 diff --git a/include/lttng/channel-internal.h b/include/lttng/channel-internal.h
-index 53171f42..22d49aba 100644
+index 53171f42c..75652d4a9 100644
 --- a/include/lttng/channel-internal.h
 +++ b/include/lttng/channel-internal.h
 @@ -18,6 +18,8 @@
@@ -37,7 +38,7 @@ index 53171f42..22d49aba 100644
  struct lttng_channel_extended {
  	uint64_t discarded_events;
  	uint64_t lost_packets;
-@@ -25,4 +27,47 @@ struct lttng_channel_extended {
+@@ -25,4 +27,46 @@ struct lttng_channel_extended {
  	int64_t blocking_timeout;
  } LTTNG_PACKED;
  
@@ -67,26 +68,25 @@ index 53171f42..22d49aba 100644
 +	struct lttng_channel_attr_packed attr;
 +} LTTNG_PACKED;
 +
-+#define COPY_CHANNEL_PACKED(dst, src)							\
-+do {															\
-+	memcpy((dst)->name, (src)->name, LTTNG_SYMBOL_NAME_LEN);	\
-+	(dst)->enabled = (src)->enabled;							\
-+	(dst)->attr.overwrite = (src)->attr.overwrite;				\
-+	(dst)->attr.subbuf_size = (src)->attr.subbuf_size;			\
-+	(dst)->attr.num_subbuf = (src)->attr.num_subbuf;			\
-+	(dst)->attr.switch_timer_interval = (src)->attr.switch_timer_interval;\
-+	(dst)->attr.read_timer_interval = (src)->attr.read_timer_interval;\
-+	(dst)->attr.output = (src)->attr.output;					\
-+	(dst)->attr.tracefile_size = (src)->attr.tracefile_size;	\
-+	(dst)->attr.tracefile_count = (src)->attr.tracefile_count;	\
-+	(dst)->attr.live_timer_interval = (src)->attr.live_timer_interval;\
-+	(dst)->attr.extended.ptr = (src)->attr.extended.ptr;		\
-+} while (0)
-+
++#define COPY_CHANNEL_PACKED(dst, src) \
++	do { \
++		memcpy((dst)->name, (src)->name, LTTNG_SYMBOL_NAME_LEN); \
++		(dst)->enabled = (src)->enabled; \
++		(dst)->attr.overwrite = (src)->attr.overwrite; \
++		(dst)->attr.subbuf_size = (src)->attr.subbuf_size; \
++		(dst)->attr.num_subbuf = (src)->attr.num_subbuf; \
++		(dst)->attr.switch_timer_interval = (src)->attr.switch_timer_interval; \
++		(dst)->attr.read_timer_interval = (src)->attr.read_timer_interval; \
++		(dst)->attr.output = (src)->attr.output; \
++		(dst)->attr.tracefile_size = (src)->attr.tracefile_size; \
++		(dst)->attr.tracefile_count = (src)->attr.tracefile_count; \
++		(dst)->attr.live_timer_interval = (src)->attr.live_timer_interval; \
++		(dst)->attr.extended.ptr = (src)->attr.extended.ptr; \
++	} while (0)
 +
  #endif /* LTTNG_CHANNEL_INTERNAL_H */
 diff --git a/include/lttng/condition/buffer-usage-internal.h b/include/lttng/condition/buffer-usage-internal.h
-index 4b605d66..6efb0c4c 100644
+index 4b605d664..6efb0c4c8 100644
 --- a/include/lttng/condition/buffer-usage-internal.h
 +++ b/include/lttng/condition/buffer-usage-internal.h
 @@ -23,6 +23,7 @@
@@ -99,10 +99,10 @@ index 4b605d66..6efb0c4c 100644
  	struct lttng_condition parent;
 diff --git a/include/lttng/event-internal.h b/include/lttng/event-internal.h
 new file mode 100644
-index 00000000..37df9120
+index 000000000..f3f5f9f35
 --- /dev/null
 +++ b/include/lttng/event-internal.h
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,129 @@
 +/*
 + * event-internal.h
 + *
@@ -200,39 +200,40 @@ index 00000000..37df9120
 +	} attr;
 +} LTTNG_PACKED;
 +
++#define COPY_EVENT_CONTEXT_PACKED(dst, src) \
++	do { \
++		(dst)->ctx = (src)->ctx; \
++		(dst)->u.perf_counter.type = (src)->u.perf_counter.type; \
++		(dst)->u.perf_counter.config = (src)->u.perf_counter.config; \
++		memcpy((dst)->u.perf_counter.name, (src)->u.perf_counter.name, \
++		       LTTNG_SYMBOL_NAME_LEN);\
++		(dst)->u.app_ctx.provider_name = (src)->u.app_ctx.provider_name; \
++		(dst)->u.app_ctx.ctx_name = (src)->u.app_ctx.ctx_name; \
++	} while (0)
 +
-+
-+#define COPY_EVENT_CONTEXT_PACKED(dst, src)											\
-+do {																				\
-+	(dst)->ctx = (src)->ctx;														\
-+	(dst)->u.perf_counter.type = (src)->u.perf_counter.type;						\
-+	(dst)->u.perf_counter.config = (src)->u.perf_counter.config;					\
-+	memcpy((dst)->u.perf_counter.name, (src)->u.perf_counter.name, LTTNG_SYMBOL_NAME_LEN);	\
-+	(dst)->u.app_ctx.provider_name = (src)->u.app_ctx.provider_name;				\
-+	(dst)->u.app_ctx.ctx_name = (src)->u.app_ctx.ctx_name;							\
-+} while (0)
-+
-+#define COPY_EVENT_PACKED(dst, src)											\
-+do {																		\
-+	(dst)->type = (src)->type;												\
-+	memcpy((dst)->name, (src)->name, LTTNG_SYMBOL_NAME_LEN);				\
-+	(dst)->loglevel_type = (src)->loglevel_type;							\
-+	(dst)->loglevel = (src)->loglevel;										\
-+	(dst)->enabled = (src)->enabled;										\
-+	(dst)->pid = (src)->pid;												\
-+	(dst)->filter = (src)->filter;											\
-+	(dst)->exclusion = (src)->exclusion;									\
-+	(dst)->flags = (src)->flags;											\
-+	(dst)->extended.ptr = (src)->extended.ptr;								\
-+	(dst)->attr.probe.addr = (src)->attr.probe.addr;						\
-+	(dst)->attr.probe.offset = (src)->attr.probe.offset;					\
-+	memcpy((dst)->attr.probe.symbol_name, (src)->attr.probe.symbol_name, LTTNG_SYMBOL_NAME_LEN);	\
-+	memcpy((dst)->attr.ftrace.symbol_name, (src)->attr.ftrace.symbol_name, LTTNG_SYMBOL_NAME_LEN);	\
-+} while (0)
++#define COPY_EVENT_PACKED(dst, src) \
++	do { \
++		(dst)->type = (src)->type; \
++		memcpy((dst)->name, (src)->name, LTTNG_SYMBOL_NAME_LEN); \
++		(dst)->loglevel_type = (src)->loglevel_type; \
++		(dst)->loglevel = (src)->loglevel; \
++		(dst)->enabled = (src)->enabled; \
++		(dst)->pid = (src)->pid; \
++		(dst)->filter = (src)->filter; \
++		(dst)->exclusion = (src)->exclusion; \
++		(dst)->flags = (src)->flags; \
++		(dst)->extended.ptr = (src)->extended.ptr; \
++		(dst)->attr.probe.addr = (src)->attr.probe.addr; \
++		(dst)->attr.probe.offset = (src)->attr.probe.offset; \
++		memcpy((dst)->attr.probe.symbol_name, (src)->attr.probe.symbol_name, \
++		       LTTNG_SYMBOL_NAME_LEN); \
++		memcpy((dst)->attr.ftrace.symbol_name, (src)->attr.ftrace.symbol_name, \
++		       LTTNG_SYMBOL_NAME_LEN); \
++	} while (0)
 +
 +#endif /* LTTNG_EVENT_INTERNAL_H */
 diff --git a/include/lttng/snapshot-internal.h b/include/lttng/snapshot-internal.h
-index b7391c22..eb77e430 100644
+index b7391c228..eb77e4305 100644
 --- a/include/lttng/snapshot-internal.h
 +++ b/include/lttng/snapshot-internal.h
 @@ -21,6 +21,7 @@
@@ -253,7 +254,7 @@ index b7391c22..eb77e430 100644
  /*
   * Snapshot output list object opaque to the user.
 diff --git a/src/bin/lttng-sessiond/cmd.c b/src/bin/lttng-sessiond/cmd.c
-index 16f4849b..c86cf055 100644
+index 16f4849bc..c86cf055b 100644
 --- a/src/bin/lttng-sessiond/cmd.c
 +++ b/src/bin/lttng-sessiond/cmd.c
 @@ -246,7 +246,7 @@ end:
@@ -397,7 +398,7 @@ index 16f4849b..c86cf055 100644
  	int ret = 0;
  	ssize_t nb_event = 0;
 diff --git a/src/bin/lttng-sessiond/cmd.h b/src/bin/lttng-sessiond/cmd.h
-index e7e34427..7ae78e8d 100644
+index e7e344276..7ae78e8de 100644
 --- a/src/bin/lttng-sessiond/cmd.h
 +++ b/src/bin/lttng-sessiond/cmd.h
 @@ -81,9 +81,9 @@ ssize_t cmd_list_domains(struct ltt_session *session,
@@ -413,7 +414,7 @@ index e7e34427..7ae78e8d 100644
  		struct lttng_domain **domains);
  void cmd_list_lttng_sessions(struct lttng_session *sessions, uid_t uid,
 diff --git a/src/bin/lttng-sessiond/main.c b/src/bin/lttng-sessiond/main.c
-index 7626b56a..98b2c00f 100644
+index 7626b56a3..abfa92f38 100644
 --- a/src/bin/lttng-sessiond/main.c
 +++ b/src/bin/lttng-sessiond/main.c
 @@ -49,6 +49,8 @@
@@ -425,11 +426,12 @@ index 7626b56a..98b2c00f 100644
  
  #include "lttng-sessiond.h"
  #include "buffer-registry.h"
-@@ -3323,10 +3325,12 @@ skip_domain:
+@@ -3323,10 +3325,13 @@ skip_domain:
  		 * cmd_add_context assumes ownership of the provider and context
  		 * names.
  		 */
 +		struct lttng_event_context ctx;
++
 +		COPY_EVENT_CONTEXT_PACKED(&ctx, &cmd_ctx->lsm->u.context.ctx);
  		ret = cmd_add_context(cmd_ctx->session,
  				cmd_ctx->lsm->domain.type,
@@ -439,7 +441,7 @@ index 7626b56a..98b2c00f 100644
  				kernel_poll_pipe[1]);
  
  		cmd_ctx->lsm->u.context.ctx.u.app_ctx.provider_name = NULL;
-@@ -3347,6 +3351,8 @@ error_add_context:
+@@ -3347,6 +3352,8 @@ error_add_context:
  	}
  	case LTTNG_DISABLE_EVENT:
  	{
@@ -448,7 +450,7 @@ index 7626b56a..98b2c00f 100644
  
  		/*
  		 * FIXME: handle filter; for now we just receive the filter's
-@@ -3375,17 +3381,22 @@ error_add_context:
+@@ -3375,17 +3382,22 @@ error_add_context:
  			}
  		}
  		/* FIXME: passing packed structure to non-packed pointer */
@@ -474,7 +476,7 @@ index 7626b56a..98b2c00f 100644
  				kernel_poll_pipe[1]);
  		break;
  	}
-@@ -3405,6 +3416,7 @@ error_add_context:
+@@ -3405,6 +3417,7 @@ error_add_context:
  	}
  	case LTTNG_ENABLE_EVENT:
  	{
@@ -482,7 +484,7 @@ index 7626b56a..98b2c00f 100644
  		struct lttng_event_exclusion *exclusion = NULL;
  		struct lttng_filter_bytecode *bytecode = NULL;
  		char *filter_expression = NULL;
-@@ -3506,9 +3518,11 @@ error_add_context:
+@@ -3506,9 +3519,11 @@ error_add_context:
  			}
  		}
  
@@ -495,7 +497,7 @@ index 7626b56a..98b2c00f 100644
  				filter_expression, bytecode, exclusion,
  				kernel_poll_pipe[1]);
  		break;
-@@ -3516,14 +3530,23 @@ error_add_context:
+@@ -3516,14 +3531,23 @@ error_add_context:
  	case LTTNG_LIST_TRACEPOINTS:
  	{
  		struct lttng_event *events;
@@ -519,7 +521,7 @@ index 7626b56a..98b2c00f 100644
  			goto error;
  		}
  
-@@ -3531,9 +3554,9 @@ error_add_context:
+@@ -3531,9 +3555,9 @@ error_add_context:
  		 * Setup lttng message with payload size set to the event list size in
  		 * bytes and then copy list into the llm payload.
  		 */
@@ -532,7 +534,7 @@ index 7626b56a..98b2c00f 100644
  
  		if (ret < 0) {
  			goto setup_error;
-@@ -3576,6 +3599,8 @@ error_add_context:
+@@ -3576,6 +3600,8 @@ error_add_context:
  	{
  		struct lttng_event *events;
  		ssize_t nb_events;
@@ -541,7 +543,7 @@ index 7626b56a..98b2c00f 100644
  
  		nb_events = cmd_list_syscalls(&events);
  		if (nb_events < 0) {
-@@ -3584,13 +3609,19 @@ error_add_context:
+@@ -3584,13 +3610,19 @@ error_add_context:
  			goto error;
  		}
  
@@ -564,7 +566,7 @@ index 7626b56a..98b2c00f 100644
  
  		if (ret < 0) {
  			goto setup_error;
-@@ -3751,7 +3782,7 @@ error_add_context:
+@@ -3751,7 +3783,7 @@ error_add_context:
  	case LTTNG_LIST_CHANNELS:
  	{
  		ssize_t payload_size;
@@ -573,7 +575,7 @@ index 7626b56a..98b2c00f 100644
  
  		payload_size = cmd_list_channels(cmd_ctx->lsm->domain.type,
  				cmd_ctx->session, &channels);
-@@ -3775,7 +3806,7 @@ error_add_context:
+@@ -3775,7 +3807,7 @@ error_add_context:
  	case LTTNG_LIST_EVENTS:
  	{
  		ssize_t nb_event;
@@ -583,7 +585,7 @@ index 7626b56a..98b2c00f 100644
  		size_t total_size;
  
 diff --git a/src/common/sessiond-comm/agent.h b/src/common/sessiond-comm/agent.h
-index 11acc52f..84c66b8b 100644
+index 11acc52f9..84c66b8b7 100644
 --- a/src/common/sessiond-comm/agent.h
 +++ b/src/common/sessiond-comm/agent.h
 @@ -21,6 +21,7 @@
@@ -595,7 +597,7 @@ index 11acc52f..84c66b8b 100644
  
  /*
 diff --git a/src/common/sessiond-comm/relayd.h b/src/common/sessiond-comm/relayd.h
-index 52ca1caa..b14b370b 100644
+index 52ca1caa1..b14b370bb 100644
 --- a/src/common/sessiond-comm/relayd.h
 +++ b/src/common/sessiond-comm/relayd.h
 @@ -25,6 +25,7 @@
@@ -607,7 +609,7 @@ index 52ca1caa..b14b370b 100644
  #define RELAYD_VERSION_COMM_MAJOR             VERSION_MAJOR
  #define RELAYD_VERSION_COMM_MINOR             VERSION_MINOR
 diff --git a/src/common/sessiond-comm/sessiond-comm.h b/src/common/sessiond-comm/sessiond-comm.h
-index fb959750..0468dc07 100644
+index 2e93ed2b8..03be5569a 100644
 --- a/src/common/sessiond-comm/sessiond-comm.h
 +++ b/src/common/sessiond-comm/sessiond-comm.h
 @@ -30,11 +30,13 @@
@@ -624,7 +626,7 @@ index fb959750..0468dc07 100644
  
  #include <arpa/inet.h>
  #include <netinet/in.h>
-@@ -242,7 +244,7 @@ struct lttcomm_session_msg {
+@@ -348,7 +350,7 @@ struct lttcomm_session_msg {
  		/* Event data */
  		struct {
  			char channel_name[LTTNG_SYMBOL_NAME_LEN];
@@ -633,7 +635,7 @@ index fb959750..0468dc07 100644
  			/* Length of following filter expression. */
  			uint32_t expression_len;
  			/* Length of following bytecode for filter. */
-@@ -259,7 +261,7 @@ struct lttcomm_session_msg {
+@@ -365,7 +367,7 @@ struct lttcomm_session_msg {
  		} LTTNG_PACKED enable;
  		struct {
  			char channel_name[LTTNG_SYMBOL_NAME_LEN];
@@ -642,7 +644,7 @@ index fb959750..0468dc07 100644
  			/* Length of following filter expression. */
  			uint32_t expression_len;
  			/* Length of following bytecode for filter. */
-@@ -273,14 +275,14 @@ struct lttcomm_session_msg {
+@@ -379,14 +381,14 @@ struct lttcomm_session_msg {
  		} LTTNG_PACKED disable;
  		/* Create channel */
  		struct {
@@ -659,7 +661,7 @@ index fb959750..0468dc07 100644
  			uint32_t provider_name_len;
  			uint32_t context_name_len;
  		} LTTNG_PACKED context;
-@@ -299,11 +301,11 @@ struct lttcomm_session_msg {
+@@ -405,11 +407,11 @@ struct lttcomm_session_msg {
  			uint32_t size;
  		} LTTNG_PACKED uri;
  		struct {
@@ -674,7 +676,7 @@ index fb959750..0468dc07 100644
  		struct {
  			uint32_t nb_uri;
 diff --git a/src/lib/lttng-ctl/filter/filter-bytecode.h b/src/lib/lttng-ctl/filter/filter-bytecode.h
-index 627d0d6f..00356239 100644
+index 627d0d6f0..00356239f 100644
 --- a/src/lib/lttng-ctl/filter/filter-bytecode.h
 +++ b/src/lib/lttng-ctl/filter/filter-bytecode.h
 @@ -23,6 +23,7 @@
@@ -686,7 +688,7 @@ index 627d0d6f..00356239 100644
  #include "filter-ast.h"
  
 diff --git a/src/lib/lttng-ctl/lttng-ctl.c b/src/lib/lttng-ctl/lttng-ctl.c
-index 9cd77cb3..49c946bc 100644
+index 9cd77cb35..49c946bcd 100644
 --- a/src/lib/lttng-ctl/lttng-ctl.c
 +++ b/src/lib/lttng-ctl/lttng-ctl.c
 @@ -741,7 +741,7 @@ int lttng_add_context(struct lttng_handle *handle,
@@ -922,5 +924,5 @@ index 9cd77cb3..49c946bc 100644
  }
  
 -- 
-2.25.1
+2.31.1
 
