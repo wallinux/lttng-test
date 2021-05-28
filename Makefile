@@ -128,13 +128,20 @@ uninstall.%:
 	$(TARGET)
 	$(SUDOMAKE) -C $(BUILDDIR)/$(branch)/$* $(target)
 
-distclean.%:
+clean.%:
 	$(TRACE)
 	$(TARGET)
 	$(SUDO) rm -rf $(INSTALLDIR)/$(branch)/*
 	$(RM) -r $(BUILDDIR)/$(branch)/*/*
 
-clean.% TAGS.% CTAGS.% distclean-tags.%:
+distclean.%:
+	$(TRACE)
+	$(TARGET)
+	$(MAKE) clean.$*
+	-$(Q)git -C $(SRCDIR)/$* worktree remove -f $(branch)
+	-$(Q)git -C $(SRCDIR)/$* branch -D $(branch)
+
+TAGS.% CTAGS.% distclean-tags.%:
 	$(TRACE)
 	$(TARGET)
 	$(Q)if [ -e $(BUILDDIR)/$(branch)/$*/Makefile ]; then \
@@ -155,10 +162,14 @@ Makefile.help:
 
 help:: Makefile.help
 
-DISTCLEAN:
+CLEAN:
 	$(TRACE)
 	$(SUDO) rm -f -r $(INSTALLDIR)
-	$(RM) -r $(OUTDIR)
+	$(RM) -r $(BUILDDIR)
+
+DISTCLEAN:
+	$(TRACE)
+	$(SUDO) rm -f -r $(OUTDIR)
 
 all configure unconfigure install distclean uninstall clean TAGS CTAGS distclean-tags update add_worktree remove_worktree patch_worktree bls check:
 	$(TRACE)
