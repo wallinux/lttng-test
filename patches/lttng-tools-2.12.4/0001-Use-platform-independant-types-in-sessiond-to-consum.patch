@@ -1,5 +1,5 @@
-From 9480e0914fa9490642594e9b118abf9e933f1fc4 Mon Sep 17 00:00:00 2001
-Message-Id: <9480e0914fa9490642594e9b118abf9e933f1fc4.1621951717.git.wallinux@gmail.com>
+From 3be9eafd7581b3d04bd8effa217b1aa61f3768dc Mon Sep 17 00:00:00 2001
+Message-Id: <3be9eafd7581b3d04bd8effa217b1aa61f3768dc.1622443174.git.wallinux@gmail.com>
 From: Vasile-Laurentiu Stanimir <vasile-laurentiu.stanimir@windriver.com>
 Date: Mon, 18 Feb 2019 19:54:25 +0200
 Subject: [PATCH] Use platform-independant types in sessiond to consumerd
@@ -260,7 +260,7 @@ index 9f00ae181..3a120c1e9 100644
   * Return ptr to string representing a human readable error code from the
   * lttcomm_return_code enum.
 diff --git a/src/common/sessiond-comm/sessiond-comm.h b/src/common/sessiond-comm/sessiond-comm.h
-index cca48d6ab..83014f256 100644
+index cca48d6ab..444a0e99b 100644
 --- a/src/common/sessiond-comm/sessiond-comm.h
 +++ b/src/common/sessiond-comm/sessiond-comm.h
 @@ -224,15 +224,101 @@ struct lttcomm_sockaddr {
@@ -308,13 +308,6 @@ index cca48d6ab..83014f256 100644
 +	uint32_t sin6_scope_id;
 +} LTTNG_PACKED;
 +
-+extern
-+int sockaddr_in6_serialize(const struct sockaddr_in6 *src,
-+			   struct sockaddr_in6_serialized *dst);
-+extern
-+int sockaddr_in6_deserialize(const struct sockaddr_in6_serialized *src,
-+			     struct sockaddr_in6 *dst);
-+
 +/*
 + * Serialized version of struct lttcomm_sockaddr (may be used for
 + * communication only).
@@ -335,6 +328,13 @@ index cca48d6ab..83014f256 100644
 +extern
 +int sockaddr_in6_deserialize(const struct sockaddr_in6_serialized *src,
 +			     struct sockaddr_in6 *dst);
++
++extern
++int lttcomm_sockaddr_serialize(const struct lttcomm_sockaddr *src,
++			       struct lttcomm_sockaddr_serialized *dst);
++extern
++int lttcomm_sockaddr_deserialize(const struct lttcomm_sockaddr_serialized *src,
++				 struct lttcomm_sockaddr *dst);
 +
 +/* For internal use only */
  struct lttcomm_sock {
@@ -438,5 +438,5 @@ index c5b445df8..bdd98c1dd 100644
  		goto end_nosignal;
  	}
 -- 
-2.31.1
+2.25.1
 

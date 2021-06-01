@@ -1,5 +1,5 @@
-From ccad82b483ca42b4d49d8db86b91405ff6e88821 Mon Sep 17 00:00:00 2001
-Message-Id: <ccad82b483ca42b4d49d8db86b91405ff6e88821.1622115173.git.wallinux@gmail.com>
+From 061c05564190526d3fe55a06c0d3e63feb00efaf Mon Sep 17 00:00:00 2001
+Message-Id: <061c05564190526d3fe55a06c0d3e63feb00efaf.1622402864.git.wallinux@gmail.com>
 From: Vasile-Laurentiu Stanimir <vasile-laurentiu.stanimir@windriver.com>
 Date: Thu, 17 Dec 2020 10:54:55 +0200
 Subject: [PATCH] lttng-tools 2.10: Fix multilib internal packed structures
@@ -212,7 +212,7 @@ index 72d492237..1c6a43746 100644
  /*
   * Snapshot output list object opaque to the user.
 diff --git a/src/bin/lttng-sessiond/client.c b/src/bin/lttng-sessiond/client.c
-index 9f9afa25a..b3ec1c6cd 100644
+index 9f9afa25a..27f8eef19 100644
 --- a/src/bin/lttng-sessiond/client.c
 +++ b/src/bin/lttng-sessiond/client.c
 @@ -16,6 +16,7 @@
@@ -290,7 +290,7 @@ index 9f9afa25a..b3ec1c6cd 100644
  				ALIGNED_CONST_PTR(cmd_ctx->lsm->domain),
  				cmd_ctx->lsm->u.enable.channel_name,
 -				ev,
-+				$tmp_ev,
++				&tmp_ev,
  				filter_expression, bytecode, exclusion,
  				kernel_poll_pipe[1]);
  		lttng_event_destroy(ev);
@@ -329,7 +329,7 @@ index 9f9afa25a..b3ec1c6cd 100644
 -		free(events);
 +		ret = setup_lttng_msg_no_cmd_header(cmd_ctx, packed_events,
 +			sizeof(struct lttng_event_packed) * nb_events);
-+		free(packet_events);
++		free(packed_events);
  
  		if (ret < 0) {
  			goto setup_error;
@@ -361,7 +361,7 @@ index 9f9afa25a..b3ec1c6cd 100644
 -		free(events);
 +		ret = setup_lttng_msg_no_cmd_header(cmd_ctx, packed_events,
 +			sizeof(struct lttng_event_packed) * nb_events);
-+		free(packet_events);
++		free(packed_events);
  
  		if (ret < 0) {
  			goto setup_error;
@@ -778,5 +778,5 @@ index 2c2335a28..77ade36e8 100644
  	return ret;
  }
 -- 
-2.31.1
+2.25.1
 
