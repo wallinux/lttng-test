@@ -1,5 +1,5 @@
-From f729a2b32f6fcc6c42c425f8008a919e77a6d36c Mon Sep 17 00:00:00 2001
-Message-Id: <f729a2b32f6fcc6c42c425f8008a919e77a6d36c.1621246283.git.wallinux@gmail.com>
+From 4974b12bd6273c9e6fb579ff3c5e07c862902127 Mon Sep 17 00:00:00 2001
+Message-Id: <4974b12bd6273c9e6fb579ff3c5e07c862902127.1621412968.git.wallinux@gmail.com>
 From: Anders Wallin <anders.wallin@windriver.com>
 Date: Mon, 16 Oct 2017 13:10:20 +0200
 Subject: [PATCH] Test: Changed no of kernel snapshots from 1000 to 100
@@ -10,7 +10,7 @@ Signed-off-by: Anders Wallin <anders.wallin@windriver.com>
  1 file changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/tests/regression/tools/snapshots/test_kernel b/tests/regression/tools/snapshots/test_kernel
-index d4e0008f9..a7c4bbb92 100755
+index 75de4ed45..17170595f 100755
 --- a/tests/regression/tools/snapshots/test_kernel
 +++ b/tests/regression/tools/snapshots/test_kernel
 @@ -14,7 +14,7 @@ CHANNEL_NAME="snapchan"
@@ -34,7 +34,7 @@ index d4e0008f9..a7c4bbb92 100755
  
  	diag "Test local kernel snapshots"
  	create_lttng_session_no_output $SESSION_NAME
-@@ -228,13 +228,13 @@ skip $isroot "Root access is needed. Skipping all kernel snapshot tests" $NUM_TE
+@@ -228,13 +228,13 @@ skip $isroot "Root access is needed. Skipping all kernel snapshot tests." $NUM_T
  
  	start_lttng_sessiond
  

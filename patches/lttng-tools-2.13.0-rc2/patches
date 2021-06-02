@@ -22,9 +22,5 @@ Revert-Fix-ust-consumer-flush-empty-packets-on-snaps.patch
 
 # TBD
 #0001-Use-platform-independant-types-in-sessiond-to-consum.patch
-
-# TBD
 #0001-lttng-tools-2.10-Fix-multilib-internal-packed-struct.patch
-
-# TBD
 #0001-lttng-tools-fix-regression-in-multilib-internal-pack.patch
