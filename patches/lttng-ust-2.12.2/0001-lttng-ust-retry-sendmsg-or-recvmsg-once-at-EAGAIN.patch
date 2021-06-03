@@ -1,0 +1,93 @@
+From b137b9c44fe18f06ab8be199f154f56b55b20da3 Mon Sep 17 00:00:00 2001
+From: Heng Guo <heng.guo@windriver.com>
+Date: Fri, 26 Feb 2021 09:31:06 +0800
+Subject: [PATCH] lttng-ust: retry sendmsg or recvmsg once at EAGAIN
+
+Issue:LINCCM-7927
+
+Below log is got when user application calls API lttng_enable_channel(),
+the root cause is that EAGAIN error is got when recvmsg SOCKET API is
+called.
+---------------
+Error[TED]:recreate_session_in_lttng(): lttng_enable_channel, UST create
+channel failed
+--------------
+
+In lttng-ust pacakge, EAGAIN error is treated as others and retry
+operation is not run again. So lttng_enable_channel() return failure and
+user application crashes.
+
+By the definition of EAGAIN error, it is reasonable to retry sendmsg or
+recvmsg.
+
+Signed-off-by: Heng Guo <heng.guo@windriver.com>
+
+%% original patch: 0001-lttng-ust-retry-sendmsg-or-recvmsg-when-EAGAIN-is-go.patch
+---
+ liblttng-ust-comm/lttng-ust-comm.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/liblttng-ust-comm/lttng-ust-comm.c b/liblttng-ust-comm/lttng-ust-comm.c
+index d80055e9..dba5bf04 100644
+--- a/liblttng-ust-comm/lttng-ust-comm.c
++++ b/liblttng-ust-comm/lttng-ust-comm.c
+@@ -46,6 +46,7 @@
+ 	(code == LTTNG_UST_OK ? 0 : (code - LTTNG_UST_ERR + 1))
+ 
+ #define USTCOMM_MAX_SEND_FDS	4
++#define RETRY_TIMES 1
+ 
+ static
+ ssize_t count_fields_recursive(size_t nr_fields,
+@@ -295,6 +296,7 @@ ssize_t ustcomm_recv_unix_sock(int sock, void *buf, size_t len)
+ 	struct iovec iov[1];
+ 	ssize_t ret = -1;
+ 	size_t len_last;
++	int retry = 0;
+ 
+ 	memset(&msg, 0, sizeof(msg));
+ 
+@@ -306,11 +308,18 @@ ssize_t ustcomm_recv_unix_sock(int sock, void *buf, size_t len)
+ 	do {
+ 		len_last = iov[0].iov_len;
+ 		ret = recvmsg(sock, &msg, 0);
++
+ 		if (ret > 0) {
+ 			iov[0].iov_base += ret;
+ 			iov[0].iov_len -= ret;
+ 			assert(ret <= len_last);
+ 		}
++		else if (errno == EAGAIN && retry < RETRY_TIMES)
++		{
++			errno = EINTR;
++			retry ++;
++			DBG("recvmsg, sock:%d, ret:%d, errno: EAGAIN", sock, ret);
++		}
+ 	} while ((ret > 0 && ret < len_last) || (ret < 0 && errno == EINTR));
+ 
+ 	if (ret < 0) {
+@@ -344,6 +353,7 @@ ssize_t ustcomm_send_unix_sock(int sock, const void *buf, size_t len)
+ 	struct msghdr msg;
+ 	struct iovec iov[1];
+ 	ssize_t ret;
++	int retry = 0;
+ 
+ 	memset(&msg, 0, sizeof(msg));
+ 
+@@ -361,6 +371,13 @@ ssize_t ustcomm_send_unix_sock(int sock, const void *buf, size_t len)
+ 	 */
+ 	do {
+ 		ret = sendmsg(sock, &msg, MSG_NOSIGNAL);
++
++		if(ret < 0 && errno == EAGAIN && retry < RETRY_TIMES)
++		{
++			errno = EINTR;
++			retry ++;
++			DBG("sendmsg, sock:%d, ret:%d, errno: EAGAIN", sock, ret);
++		}
+ 	} while (ret < 0 && errno == EINTR);
+ 
+ 	if (ret < 0) {
+-- 
+2.26.1
+

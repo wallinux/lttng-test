@@ -38,3 +38,6 @@
 #Added-ARM-and-AARCH64-cntpct-clock-plugin.patch
 #adding-debug-information-when-using-custom-clock.patch
 
+# SF 00114064 - lttng_enable_channel fails around ntpd clock sync
+# LINCCM-7927
+0001-lttng-ust-retry-sendmsg-or-recvmsg-once-at-EAGAIN.patch

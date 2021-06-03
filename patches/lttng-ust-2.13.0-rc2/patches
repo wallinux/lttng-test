@@ -12,3 +12,6 @@
 # Replaced with:
 0001-Fix-bus-error-in-lttng_inline_memcpy-for-arm.patch
 
+# SF 00114064 - lttng_enable_channel fails around ntpd clock sync
+# LINCCM-7927
+0001-lttng-ust-retry-sendmsg-or-recvmsg-once-at-EAGAIN.patch
