@@ -13,7 +13,7 @@ rcs12_lttng-tools=v2.12.4
 rcs12_babeltrace=v2.0.4
 branches += rcs12
 
-rcs13_userspace-rcu=v0.12.2
+rcs13_userspace-rcu=v0.13.0
 rcs13_lttng-ust=v2.13.0-rc2
 rcs13_lttng-tools=v2.13.0-rc2
 rcs13_babeltrace=v2.0.4
@@ -37,7 +37,7 @@ stable-2.12_lttng-tools=origin/stable-2.12
 stable-2.12_babeltrace=origin/stable-2.0
 branches += stable-2.12
 
-stable-2.13_userspace-rcu=origin/stable-0.12
+stable-2.13_userspace-rcu=origin/stable-0.13
 stable-2.13_lttng-ust=origin/stable-2.13
 stable-2.13_lttng-tools=origin/stable-2.13
 stable-2.13_babeltrace=origin/stable-2.0
