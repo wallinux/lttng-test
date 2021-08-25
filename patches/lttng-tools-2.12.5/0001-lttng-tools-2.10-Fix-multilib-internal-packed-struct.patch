@@ -1,5 +1,5 @@
-From 061c05564190526d3fe55a06c0d3e63feb00efaf Mon Sep 17 00:00:00 2001
-Message-Id: <061c05564190526d3fe55a06c0d3e63feb00efaf.1622402864.git.wallinux@gmail.com>
+From ac0d7622d1f1d1b5a958e1dd59908d76c0e0c788 Mon Sep 17 00:00:00 2001
+Message-Id: <ac0d7622d1f1d1b5a958e1dd59908d76c0e0c788.1629899029.git.wallinux@gmail.com>
 From: Vasile-Laurentiu Stanimir <vasile-laurentiu.stanimir@windriver.com>
 Date: Thu, 17 Dec 2020 10:54:55 +0200
 Subject: [PATCH] lttng-tools 2.10: Fix multilib internal packed structures
@@ -384,7 +384,7 @@ index 9f9afa25a..27f8eef19 100644
  		size_t total_size;
  
 diff --git a/src/bin/lttng-sessiond/cmd.c b/src/bin/lttng-sessiond/cmd.c
-index b608df1e1..80ef7b2d6 100644
+index eb5da1b76..09fdcbbaf 100644
 --- a/src/bin/lttng-sessiond/cmd.c
 +++ b/src/bin/lttng-sessiond/cmd.c
 @@ -285,7 +285,7 @@ end:
@@ -420,16 +420,16 @@ index b608df1e1..80ef7b2d6 100644
  	struct lttng_ht_iter iter;
  	size_t extended_len = 0;
  	void *extended_at;
-@@ -545,7 +545,7 @@ static int list_lttng_agent_events(struct agent *agt,
+@@ -542,7 +542,7 @@ static int list_lttng_agent_events(struct agent *agt,
  	}
  
  	extended_at = ((uint8_t *) tmp_events) +
 -		nb_event * sizeof(struct lttng_event);
 +		nb_event * sizeof(struct lttng_event_packed);
  
- 	rcu_read_lock();
  	cds_lfht_for_each_entry(agt->events->ht, &iter.iter, event, node.node) {
-@@ -583,7 +583,7 @@ error:
+ 		strncpy(tmp_events[i].name, event->name, sizeof(tmp_events[i].name));
+@@ -579,7 +579,7 @@ error:
   */
  static int list_lttng_ust_global_events(char *channel_name,
  		struct ltt_ust_domain_global *ust_global,
@@ -438,7 +438,7 @@ index b608df1e1..80ef7b2d6 100644
  {
  	int i = 0, ret = 0;
  	unsigned int nb_event = 0;
-@@ -591,7 +591,7 @@ static int list_lttng_ust_global_events(char *channel_name,
+@@ -587,7 +587,7 @@ static int list_lttng_ust_global_events(char *channel_name,
  	struct lttng_ht_node_str *node;
  	struct ltt_ust_channel *uchan;
  	struct ltt_ust_event *uevent;
@@ -447,7 +447,7 @@ index b608df1e1..80ef7b2d6 100644
  	size_t extended_len = 0;
  	void *extended_at;
  
-@@ -639,14 +639,14 @@ static int list_lttng_ust_global_events(char *channel_name,
+@@ -635,14 +635,14 @@ static int list_lttng_ust_global_events(char *channel_name,
  		goto end;
  	}
  
@@ -464,7 +464,7 @@ index b608df1e1..80ef7b2d6 100644
  
  	cds_lfht_for_each_entry(uchan->events->ht, &iter.iter, uevent, node.node) {
  		if (uevent->internal) {
-@@ -711,7 +711,7 @@ end:
+@@ -707,7 +707,7 @@ end:
   */
  static int list_lttng_kernel_events(char *channel_name,
  		struct ltt_kernel_session *kernel_session,
@@ -473,7 +473,7 @@ index b608df1e1..80ef7b2d6 100644
  {
  	int i = 0, ret;
  	unsigned int nb_event;
-@@ -748,7 +748,7 @@ static int list_lttng_kernel_events(char *channel_name,
+@@ -744,7 +744,7 @@ static int list_lttng_kernel_events(char *channel_name,
  		}
  	}
  
@@ -482,7 +482,7 @@ index b608df1e1..80ef7b2d6 100644
  	*events = zmalloc(*total_size);
  	if (*events == NULL) {
  		ret = -LTTNG_ERR_FATAL;
-@@ -756,7 +756,7 @@ static int list_lttng_kernel_events(char *channel_name,
+@@ -752,7 +752,7 @@ static int list_lttng_kernel_events(char *channel_name,
  	}
  
  	extended_at = ((void *) *events) +
@@ -491,7 +491,7 @@ index b608df1e1..80ef7b2d6 100644
  
  	/* Kernel channels */
  	cds_list_for_each_entry(event, &kchan->events_list.head , list) {
-@@ -3660,7 +3660,7 @@ error:
+@@ -3656,7 +3656,7 @@ error:
   * Command LTTNG_LIST_CHANNELS processed by the client thread.
   */
  ssize_t cmd_list_channels(enum lttng_domain_type domain,
@@ -500,7 +500,7 @@ index b608df1e1..80ef7b2d6 100644
  {
  	ssize_t nb_chan = 0, payload_size = 0, ret;
  
-@@ -3694,7 +3694,7 @@ ssize_t cmd_list_channels(enum lttng_domain_type domain,
+@@ -3690,7 +3690,7 @@ ssize_t cmd_list_channels(enum lttng_domain_type domain,
  	}
  
  	if (nb_chan > 0) {
@@ -509,7 +509,7 @@ index b608df1e1..80ef7b2d6 100644
  			sizeof(struct lttng_channel_extended);
  		struct lttng_channel_extended *channel_exts;
  
-@@ -3706,7 +3706,7 @@ ssize_t cmd_list_channels(enum lttng_domain_type domain,
+@@ -3702,7 +3702,7 @@ ssize_t cmd_list_channels(enum lttng_domain_type domain,
  		}
  
  		channel_exts = ((void *) *channels) +
@@ -518,7 +518,7 @@ index b608df1e1..80ef7b2d6 100644
  		ret = list_lttng_channels(domain, session, *channels, channel_exts);
  		if (ret != LTTNG_OK) {
  			free(*channels);
-@@ -3727,7 +3727,7 @@ end:
+@@ -3723,7 +3723,7 @@ end:
   */
  ssize_t cmd_list_events(enum lttng_domain_type domain,
  		struct ltt_session *session, char *channel_name,
@@ -544,7 +544,7 @@ index 1be746031..a00882842 100644
  		struct lttng_domain **domains);
  void cmd_list_lttng_sessions(struct lttng_session *sessions,
 diff --git a/src/common/sessiond-comm/sessiond-comm.h b/src/common/sessiond-comm/sessiond-comm.h
-index 83014f256..d9a122e45 100644
+index 444a0e99b..2aae110cf 100644
 --- a/src/common/sessiond-comm/sessiond-comm.h
 +++ b/src/common/sessiond-comm/sessiond-comm.h
 @@ -20,6 +20,7 @@

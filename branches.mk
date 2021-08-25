@@ -9,13 +9,13 @@ branches += rcs10
 
 rcs12_userspace-rcu=v0.12.2
 rcs12_lttng-ust=v2.12.2
-rcs12_lttng-tools=v2.12.4
+rcs12_lttng-tools=v2.12.5
 rcs12_babeltrace=v2.0.4
 branches += rcs12
 
 rcs13_userspace-rcu=v0.13.0
-rcs13_lttng-ust=v2.13.0-rc2
-rcs13_lttng-tools=v2.13.0-rc2
+rcs13_lttng-ust=v2.13.0
+rcs13_lttng-tools=v2.13.0
 rcs13_babeltrace=v2.0.4
 branches += rcs13
 
